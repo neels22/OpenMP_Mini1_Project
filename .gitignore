@@ -1,0 +1,9 @@
+# Ignore build artifacts
+/build/
+*.o
+*.obj
+*.exe
+*.out
+
+# macOS
+.DS_Store

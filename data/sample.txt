@@ -1,0 +1,2 @@
+# Sample data file
+This file lives in the data/ folder. Replace with your dataset(s).
