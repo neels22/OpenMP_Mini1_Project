@@ -1,3 +1,19 @@
+/**
+ * @file service_column.cpp
+ * @brief Column-oriented population model service implementation
+ * 
+ * This file implements analytics operations optimized for column-oriented data layout.
+ * The column-oriented approach stores all countries' data for each year contiguously,
+ * providing superior cache locality and vectorization opportunities for per-year
+ * aggregations and analytics operations.
+ * 
+ * Key Optimizations:
+ * - Direct indexing for O(1) country-year access
+ * - Contiguous memory access patterns for better cache performance
+ * - OpenMP parallel reductions over cache-friendly data layout
+ * - Per-thread min-heap optimization for top-N operations
+ */
+
 #include "../interface/service.hpp"
 #include "../interface/populationModelColumn.hpp"
 #include <algorithm>
@@ -11,37 +27,61 @@
 PopulationModelColumnService::PopulationModelColumnService(PopulationModelColumn* m) : model_(m) {}
 PopulationModelColumnService::~PopulationModelColumnService() = default;
 
+std::string PopulationModelColumnService::getImplementationName() const {
+    return "Column-oriented";
+}
+
 long long PopulationModelColumnService::sumPopulationForYear(int year, int numThreads) const {
+    // Find year index with O(1) hash map lookup
     const auto& yearMap = model_->yearToIndex();
     auto it = yearMap.find(year);
     if (it == yearMap.end()) return 0;
     std::size_t yearIndex = static_cast<std::size_t>(it->second);
+    
     long long total = 0;
     std::size_t rows = model_->rowCount();
+    
     if (numThreads > 1) {
+        // Parallel reduction over contiguous memory for optimal cache usage
         omp_set_num_threads(numThreads);
 #pragma omp parallel for reduction(+:total)
-        for (std::size_t i = 0; i < rows; ++i) total += model_->getPopulationForCountryYear(i, yearIndex);
+        for (std::size_t i = 0; i < rows; ++i) {
+            total += model_->getPopulationForCountryYear(i, yearIndex);
+        }
         return total;
     }
-    for (std::size_t i = 0; i < rows; ++i) total += model_->getPopulationForCountryYear(i, yearIndex);
+    
+    // Serial version for comparison - same access pattern
+    for (std::size_t i = 0; i < rows; ++i) {
+        total += model_->getPopulationForCountryYear(i, yearIndex);
+    }
     return total;
 }
 
 double PopulationModelColumnService::averagePopulationForYear(int year, int numThreads) const {
+    // Leverage sum calculation and divide by count for consistency
     const auto& yearMap = model_->yearToIndex();
     auto it = yearMap.find(year);
     if (it == yearMap.end()) return 0.0;
     std::size_t yearIndex = static_cast<std::size_t>(it->second);
+    
     long long total = 0;
     std::size_t rows = model_->rowCount();
+    
     if (numThreads > 1) {
+        // Parallel reduction with same pattern as sum for consistency
         omp_set_num_threads(numThreads);
 #pragma omp parallel for reduction(+:total)
-        for (std::size_t i = 0; i < rows; ++i) total += model_->getPopulationForCountryYear(i, yearIndex);
+        for (std::size_t i = 0; i < rows; ++i) {
+            total += model_->getPopulationForCountryYear(i, yearIndex);
+        }
         return rows > 0 ? static_cast<double>(total) / static_cast<double>(rows) : 0.0;
     }
-    for (std::size_t i = 0; i < rows; ++i) total += model_->getPopulationForCountryYear(i, yearIndex);
+    
+    // Serial calculation
+    for (std::size_t i = 0; i < rows; ++i) {
+        total += model_->getPopulationForCountryYear(i, yearIndex);
+    }
     return rows > 0 ? static_cast<double>(total) / static_cast<double>(rows) : 0.0;
 }
 

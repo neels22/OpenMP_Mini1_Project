@@ -1,3 +1,21 @@
+/**
+ * @file basic_tests.cpp
+ * @brief Comprehensive unit test suite for population analysis project
+ * 
+ * This file contains unit tests covering all major components of the population
+ * analysis project, including utility functions, benchmark framework, error
+ * handling, and data model consistency. The tests ensure correctness across
+ * different execution environments and validate edge cases.
+ * 
+ * Test Categories:
+ * - Utility Functions: Parsing, timing, and statistical calculations
+ * - Benchmark Framework: Command-line parsing and validation
+ * - Error Handling: Validation results and error reporting
+ * - Model Equivalence: Consistency between row and column data layouts
+ * 
+ * The test suite uses simple assertions for portability and clear error reporting.
+ */
+
 #include <iostream>
 #include <cassert>
 #include <vector>
@@ -7,8 +25,16 @@
 #include "../interface/populationModel.hpp"
 
 namespace {
+    /**
+     * @brief Test all utility functions for correctness and edge cases
+     * 
+     * Validates:
+     * - String parsing with various inputs and error cases
+     * - Statistical calculations (median, standard deviation)
+     * - Timing functions for basic functionality
+     */
     void testUtilityFunctions() {
-        // Test parseLongOrZero
+        // Test parseLongOrZero with various input formats
         assert(Utils::parseLongOrZero("123") == 123);
         assert(Utils::parseLongOrZero("-456") == -456);
         assert(Utils::parseLongOrZero("0") == 0);

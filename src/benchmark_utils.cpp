@@ -1,3 +1,13 @@
+/**
+ * @file benchmark_utils.cpp
+ * @brief Implementation of comprehensive benchmark framework utilities
+ * 
+ * This file implements the benchmark framework utilities declared in benchmark_utils.hpp,
+ * providing robust command-line parsing, model validation, error handling, and
+ * benchmark execution capabilities. The implementation emphasizes safety, clear
+ * error reporting, and consistent behavior across different execution environments.
+ */
+
 #include "../interface/benchmark_utils.hpp"
 #include "../interface/constants.hpp"
 #include "../interface/utils.hpp"
@@ -14,15 +24,19 @@ namespace BenchmarkUtils {
                          ? static_cast<int>(std::thread::hardware_concurrency()) 
                          : ::Config::DEFAULT_THREADS_FALLBACK)
         , showHelp(false) {
+        // Constructor automatically detects optimal thread count based on hardware,
+        // with fallback to conservative default if detection fails
     }
 
     ValidationResult::ValidationResult(bool success, const std::string& error)
         : success(success), errorMessage(error) {
+        // Simple constructor for validation result reporting
     }
 
     Config parseCommandLine(int argc, char** argv) {
         Config config;
         
+        // Parse all command-line arguments with comprehensive flag support
         for (int i = 1; i < argc; ++i) {
             std::string arg = argv[i];
             

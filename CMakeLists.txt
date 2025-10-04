@@ -24,6 +24,7 @@ set(CORE_SOURCES
   src/service_column.cpp
   src/utils.cpp
   src/benchmark_utils.cpp
+  src/benchmark_runner.cpp
 )
 
 add_library(openmp_core STATIC ${CORE_SOURCES})

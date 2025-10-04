@@ -12,6 +12,10 @@
 PopulationModelService::PopulationModelService(PopulationModel* m) : model_(m) {}
 PopulationModelService::~PopulationModelService() = default;
 
+std::string PopulationModelService::getImplementationName() const {
+    return "Row-oriented";
+}
+
 long long PopulationModelService::sumPopulationForYear(int year, int numThreads) const {
     // If caller requests multiple threads and OpenMP is available, delegate to parallel implementation
     if (numThreads > 1) {
