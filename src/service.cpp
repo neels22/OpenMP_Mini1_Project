@@ -4,6 +4,8 @@
 #include <numeric>
 #include <stdexcept>
 #include <chrono>
+#include <queue>
+#include <functional>
 
 #include <omp.h>
 
@@ -157,27 +159,53 @@ long long PopulationModelService::populationForCountryInYear(const std::string& 
 }
 
 std::vector<std::pair<std::string, long long>> PopulationModelService::topNCountriesByPopulationInYear(int year, std::size_t n, int numThreads) const {
+    if (n == 0) return {};
     if (numThreads > 1) {
         omp_set_num_threads(numThreads);
         const auto& yearMap = model_->yearToIndex();
-    auto it = yearMap.find(year);
-    if (it == yearMap.end()) return {};
-    std::size_t yearIndex = static_cast<std::size_t>(it->second);
-        std::vector<std::pair<std::string, long long>> countryPops;
+        auto it = yearMap.find(year);
+        if (it == yearMap.end()) return {};
+        std::size_t yearIndex = static_cast<std::size_t>(it->second);
+
+        using HeapElem = std::pair<long long, std::string>; // (population, country)
+        using MinHeap = std::priority_queue<HeapElem, std::vector<HeapElem>, std::greater<HeapElem>>;
+
+        int threads = omp_get_max_threads();
+        std::vector<MinHeap> localHeaps(static_cast<std::size_t>(threads));
+
 #pragma omp parallel
         {
-            std::vector<std::pair<std::string, long long>> local;
+            int tid = omp_get_thread_num();
+            MinHeap &heap = localHeaps[static_cast<std::size_t>(tid)];
 #pragma omp for nowait
             for (std::size_t i = 0; i < model_->rowCount(); ++i) {
                 const PopulationRow& row = model_->rowAt(i);
-                if (yearIndex < row.yearCount()) local.emplace_back(row.country(), row.getPopulationForYear(yearIndex));
+                if (yearIndex >= row.yearCount()) continue;
+                HeapElem e{row.getPopulationForYear(yearIndex), row.country()};
+                if (heap.size() < n) heap.push(e);
+                else if (e > heap.top()) { heap.pop(); heap.push(e); }
             }
-#pragma omp critical
-            { countryPops.insert(countryPops.end(), local.begin(), local.end()); }
         }
-        std::sort(countryPops.begin(), countryPops.end(), [](const auto& a, const auto& b){ return a.second > b.second; });
-        if (countryPops.size() > n) countryPops.resize(n);
-        return countryPops;
+
+        // Merge per-thread heaps into a final min-heap of size up to n
+        MinHeap finalHeap;
+        for (auto &h : localHeaps) {
+            while (!h.empty()) {
+                HeapElem e = h.top(); h.pop();
+                if (finalHeap.size() < n) finalHeap.push(e);
+                else if (e > finalHeap.top()) { finalHeap.pop(); finalHeap.push(e); }
+            }
+        }
+
+        // Extract results from finalHeap into vector sorted descending
+        std::vector<std::pair<std::string,long long>> out;
+        out.reserve(finalHeap.size());
+        while (!finalHeap.empty()) {
+            auto p = finalHeap.top(); finalHeap.pop(); // smallest-first
+            out.emplace_back(p.second, p.first);
+        }
+        std::reverse(out.begin(), out.end()); // now descending
+        return out;
     }
     const auto& yearMap = model_->yearToIndex();
     auto it = yearMap.find(year);
@@ -195,7 +223,7 @@ std::vector<std::pair<std::string, long long>> PopulationModelService::topNCount
 
 // Parallel helpers removed: parallel code is inlined in the numThreads>1 branches.
 
-std::vector<long long> PopulationModelService::poputationOverYearsForCountry(const std::string& country,int startYear, int endYear, int numThreads) const {
+std::vector<long long> PopulationModelService::populationOverYearsForCountry(const std::string& country, int startYear, int endYear, int numThreads) const {
     if (numThreads > 1) {
         omp_set_num_threads(numThreads);
         // per-country over-years is small; run serially even when numThreads>1

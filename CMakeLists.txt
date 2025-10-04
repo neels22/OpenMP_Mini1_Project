@@ -20,6 +20,10 @@ set(CORE_SOURCES
   src/populationModel.cpp
   src/readcsv.cpp
   src/service.cpp
+  src/populationModelColumn.cpp
+  src/service_column.cpp
+  src/utils.cpp
+  src/benchmark_utils.cpp
 )
 
 add_library(openmp_core STATIC ${CORE_SOURCES})
@@ -37,6 +41,12 @@ add_executable(${PROJECT_NAME}_row_benchmark src/synthetic_row_benchmark.cpp)
 target_compile_features(${PROJECT_NAME}_row_benchmark PRIVATE cxx_std_17)
 target_compile_options(${PROJECT_NAME}_row_benchmark PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(${PROJECT_NAME}_row_benchmark PRIVATE openmp_core)
+
+# Basic unit tests
+add_executable(${PROJECT_NAME}_tests tests/basic_tests.cpp)
+target_compile_features(${PROJECT_NAME}_tests PRIVATE cxx_std_17)
+target_compile_options(${PROJECT_NAME}_tests PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(${PROJECT_NAME}_tests PRIVATE openmp_core)
 
 # Require OpenMP (fail configuration if not available)
 find_package(OpenMP)

@@ -1,0 +1,153 @@
+#include <iostream>
+#include <cassert>
+#include <vector>
+#include <cmath>
+#include "../interface/utils.hpp"
+#include "../interface/benchmark_utils.hpp"
+#include "../interface/populationModel.hpp"
+
+namespace {
+    void testUtilityFunctions() {
+        // Test parseLongOrZero
+        assert(Utils::parseLongOrZero("123") == 123);
+        assert(Utils::parseLongOrZero("-456") == -456);
+        assert(Utils::parseLongOrZero("0") == 0);
+        assert(Utils::parseLongOrZero("abc") == 0);
+        assert(Utils::parseLongOrZero("") == 0);
+        assert(Utils::parseLongOrZero("123abc") == 123);
+        
+        // Test median calculation
+        std::vector<double> empty_vec;
+        assert(Utils::median(empty_vec) == 0.0);
+        
+        std::vector<double> single = {5.0};
+        assert(Utils::median(single) == 5.0);
+        
+        std::vector<double> odd = {3.0, 1.0, 4.0};
+        assert(Utils::median(odd) == 3.0);
+        
+        std::vector<double> even = {1.0, 2.0, 3.0, 4.0};
+        assert(Utils::median(even) == 2.5);
+        
+        // Test stddev calculation
+        std::vector<double> small = {1.0};
+        assert(Utils::stddev(small) == 0.0);
+        
+        std::vector<double> same = {5.0, 5.0, 5.0};
+        assert(Utils::stddev(same) == 0.0);
+        
+        std::vector<double> simple = {1.0, 2.0, 3.0};
+        double stddev_result = Utils::stddev(simple);
+        assert(std::abs(stddev_result - 1.0) < 0.001); // Should be 1.0
+        (void)stddev_result; // Silence unused variable warning
+        
+        std::cout << "✓ Utility functions tests passed\n";
+    }
+
+    void testBenchmarkUtils() {
+        // Test command line parsing with empty args
+        char prog[] = "test_prog";
+        char* argv[] = {prog};
+        auto config = BenchmarkUtils::parseCommandLine(1, argv);
+        assert(config.repetitions == 5); // default
+        assert(config.parallelThreads > 0); // should be > 0
+        assert(!config.showHelp);
+        (void)config; // Silence unused variable warning
+        
+        // Test help flag
+        char help_flag[] = "--help";
+        char* help_argv[] = {prog, help_flag};
+        auto help_config = BenchmarkUtils::parseCommandLine(2, help_argv);
+        assert(help_config.showHelp);
+        (void)help_config; // Silence unused variable warning
+        
+        // Test custom repetitions
+        char reps_flag[] = "-r";
+        char reps_val[] = "10";
+        char* reps_argv[] = {prog, reps_flag, reps_val};
+        auto reps_config = BenchmarkUtils::parseCommandLine(3, reps_argv);
+        assert(reps_config.repetitions == 10);
+        (void)reps_config; // Silence unused variable warning
+        
+        // Test timing functionality (basic smoke test)
+        int counter = 0;
+        auto testFn = [&counter](){ counter++; };
+        double elapsed = Utils::timeCall(testFn);
+        assert(elapsed >= 0.0); // Should be non-negative
+        assert(counter == 1); // Function should have been called once
+        (void)elapsed; // Silence unused variable warning
+        
+        auto timings = Utils::timeCallMulti(testFn, 3);
+        assert(timings.size() == 3);
+        assert(counter == 4); // Should be called 3 more times (total 4)
+        for (double t : timings) {
+            assert(t >= 0.0);
+            (void)t; // Silence unused variable warning
+        }
+        
+        std::cout << "✓ Benchmark utilities tests passed\n";
+    }
+
+    void testValidationResults() {
+        // Test successful validation
+        auto success = BenchmarkUtils::ValidationResult(true);
+        assert(success.success);
+        assert(success.errorMessage.empty());
+        
+        // Test failed validation
+        auto failure = BenchmarkUtils::ValidationResult(false, "Test error");
+        assert(!failure.success);
+        assert(failure.errorMessage == "Test error");
+        
+        std::cout << "✓ Validation results tests passed\n";
+    }
+
+    void testModelEquivalence() {
+        // Create test data
+        std::vector<long long> years = {2020, 2021, 2022};
+        
+        PopulationModel rowModel;
+        PopulationModelColumn colModel;
+        
+        rowModel.setYears(years);
+        colModel.setYears(years);
+        
+        // Add same data to both models
+        std::vector<long long> pop1 = {1000, 1100, 1200};
+        std::vector<long long> pop2 = {2000, 2200, 2400};
+        
+        rowModel.insertNewEntry("CountryA", "CA", "Population", "POP", pop1);
+        rowModel.insertNewEntry("CountryB", "CB", "Population", "POP", pop2);
+        
+        colModel.insertNewEntry("CountryA", "CA", "Population", "POP", pop1);
+        colModel.insertNewEntry("CountryB", "CB", "Population", "POP", pop2);
+        
+        // Verify both models have same structure
+        assert(rowModel.rowCount() == colModel.rowCount());
+        assert(rowModel.years().size() == colModel.years().size());
+        
+        // Verify data access equivalence
+        for (std::size_t country = 0; country < rowModel.rowCount(); ++country) {
+            for (std::size_t year = 0; year < years.size(); ++year) {
+                long long rowValue = rowModel.rowAt(country).getPopulationForYear(year);
+                long long colValue = colModel.getPopulationForCountryYear(country, year);
+                assert(rowValue == colValue);
+                (void)rowValue; (void)colValue; // Silence unused variable warnings
+            }
+        }
+        
+        std::cout << "✓ Model equivalence tests passed\n";
+    }
+}
+
+int main() {
+    std::cout << "Running comprehensive unit tests...\n";
+    
+    testUtilityFunctions();
+    testBenchmarkUtils();
+    testValidationResults();
+    testModelEquivalence();
+    
+    std::cout << "All tests passed! ✓\n";
+    return 0;
+}

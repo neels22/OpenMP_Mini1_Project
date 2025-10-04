@@ -59,5 +59,5 @@ public:
     bool setYears(std::vector<long long> years);
     void readFromCSV(const std::string& filename);
     // Insert a new entry (append)
-    void insertNewEntry(std::string& county, std::string& contry_code, std::string& indicator_name, std::string& indicator_code, std::vector<long long>& year_population);
+    void insertNewEntry(std::string country, std::string contry_code, std::string indicator_name, std::string indicator_code, std::vector<long long> year_population);
 };

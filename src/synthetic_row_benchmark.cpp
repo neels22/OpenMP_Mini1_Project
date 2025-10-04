@@ -7,6 +7,7 @@
 #include <thread>
 #include "../interface/populationModel.hpp"
 #include "../interface/service.hpp"
+#include "../interface/constants.hpp"
 #include <filesystem>
 #include <fstream>
 #include <cstdlib>
@@ -15,10 +16,11 @@ using Clock = std::chrono::high_resolution_clock;
 
 int main(int argc, char** argv) {
     // Defaults (can be overridden from CLI)
-    std::size_t rows = 200000; // number of countries
-    std::size_t years = 50;    // number of year columns per row
-    int repetitions = 3;
-    int threads = static_cast<int>(std::thread::hardware_concurrency()); if (threads <= 0) threads = 4;
+    std::size_t rows = Config::DEFAULT_SYNTHETIC_ROWS; // number of countries
+    std::size_t years = Config::DEFAULT_SYNTHETIC_YEARS;    // number of year columns per row
+    int repetitions = Config::DEFAULT_REPETITIONS;
+    int threads = static_cast<int>(std::thread::hardware_concurrency()); 
+    if (threads <= 0) threads = Config::DEFAULT_THREADS_FALLBACK;
 
     if (argc > 1) rows = static_cast<std::size_t>(std::stoull(argv[1]));
     if (argc > 2) years = static_cast<std::size_t>(std::stoull(argv[2]));
@@ -43,11 +45,11 @@ int main(int argc, char** argv) {
 
     // Header: first 4 columns then years
     csv << "Country Name,Country Code,Indicator Name,Indicator Code";
-    for (std::size_t y = 0; y < years; ++y) csv << "," << (2000 + static_cast<int>(y));
+    for (std::size_t y = 0; y < years; ++y) csv << "," << (Config::DEFAULT_BASE_YEAR + static_cast<int>(y));
     csv << "\n";
 
     // Random generator
-    std::mt19937_64 rng(123456);
+    std::mt19937_64 rng(Config::DEFAULT_RNG_SEED);
     std::uniform_int_distribution<long long> dist(0, 1000000);
 
     for (std::size_t i = 0; i < rows; ++i) {

@@ -1,8 +1,12 @@
 #include "../interface/populationModel.hpp"
 
 #include "../interface/readcsv.hpp"
+#include "../interface/utils.hpp"
 #include <stdexcept>
 #include <sstream>
+#include <string>
+#include <utility>
+#include <iostream>
 
 // PopulationRow implementations
 PopulationRow::PopulationRow() = default;
@@ -66,16 +70,48 @@ bool PopulationModel::setYears(std::vector<long long> years) {
 
 // CSV reading is implemented in service.cpp when needed
 
-void PopulationModel::insertNewEntry(std::string& county, std::string& contry_code, std::string& indicator_name, std::string& indicator_code, std::vector<long long>& year_population)
+void PopulationModel::insertNewEntry(std::string country, std::string contry_code, std::string indicator_name, std::string indicator_code, std::vector<long long> year_population)
 {
-    _countriesCode.push_back(contry_code);
-    _indicatorNames.push_back(indicator_name);
-    _indicatorCodes.push_back(indicator_code);
-    PopulationRow newRow(county, year_population);
+    _countriesCode.push_back(std::move(contry_code));
+    _indicatorNames.push_back(std::move(indicator_name));
+    _indicatorCodes.push_back(std::move(indicator_code));
+    PopulationRow newRow(std::move(country), std::move(year_population));
     std::size_t idx = _rows.size();
     _rows.push_back(std::move(newRow));
     _countryNames.push_back(_rows.back().country());
     // maintain the code->row mapping and name->code mapping
-    _countryCodeToRowIndex[contry_code] = static_cast<int>(idx);
-    _countryNameToCountryCode[county] = contry_code;
+    _countryCodeToRowIndex[_countriesCode.back()] = static_cast<int>(idx);
+    _countryNameToCountryCode[_countryNames.back()] = _countriesCode.back();
+}
+
+void PopulationModel::readFromCSV(const std::string& filename) {
+    CSVReader reader(filename);
+    try { reader.open(); } catch (const std::exception& e) { std::cerr << "Failed to open CSV: " << e.what() << "\n"; return; }
+    std::vector<std::string> row;
+    bool headerRead = false;
+    std::vector<long long> yearsLocal;
+    while (reader.readRow(row)) {
+        if (!headerRead) {
+            for (std::size_t i = 4; i < row.size(); ++i) {
+                if (row[i].empty()) continue;
+                yearsLocal.push_back(Utils::parseLongOrZero(row[i]));
+            }
+            setYears(yearsLocal);
+            headerRead = true;
+            continue;
+        }
+        if (row.size() < 5) continue;
+        std::string country = row[0];
+        std::string code = row[1];
+        std::string iname = row[2];
+        std::string icode = row[3];
+        std::vector<long long> pops;
+        pops.reserve(_years.size());
+        for (std::size_t i = 4; i < row.size(); ++i) {
+            if (row[i].empty()) pops.push_back(0);
+            else pops.push_back(Utils::parseLongOrZero(row[i]));
+        }
+        insertNewEntry(country, code, iname, icode, pops);
+    }
+    reader.close();
 }
