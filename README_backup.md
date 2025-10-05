@@ -1,412 +1,208 @@
-# OpenMP Fire Data Processing: Parallel CSV Ingestion Performance Analysis# Population Analytics & Fire Data Processing Benchmark – C++17 + OpenMP
+# Population Analytics & Fire Data Processing Benchmark – C++17 + OpenMP
 
+A comprehensive benchmark and reference implementation comparing data layouts for analytics, featuring both population analytics (row vs column layouts) and advanced fire data processing with dual storage architectures. The project demonstrates interface-based design, parallel CSV processing, and performance optimization techniques for large-scale environmental data analysis.
 
+**🆕 NEW in v2.0**: **Dual Fire Data Models** - Now includes both row-oriented and column-oriented fire data processing with comprehensive performance comparison and benchmarking.
 
-## Project OverviewA comprehensive benchmark and reference implementation comparing data layouts for analytics, featuring both population analytics (row vs column layouts) and advanced fire data processing with dual storage architectures. The project demonstrates interface-based design, parallel CSV processing, and performance optimization techniques for large-scale environmental data analysis.
-
-
-
-This project implements and benchmarks two distinct data storage architectures for processing large-scale fire monitoring datasets using OpenMP parallel programming. The system demonstrates how different data organization strategies affect parallel CSV ingestion performance when processing 516 fire monitoring CSV files containing over 1.1 million air quality measurements.**🆕 NEW in v2.0**: **Dual Fire Data Models** - Now includes both row-oriented and column-oriented fire data processing with comprehensive performance comparison and benchmarking.
-
-
-
-## Architecture Comparison---
-
+---
 ## 1. Objectives
-
-### 🏗️ Fire Row Model (Site-Oriented Storage)| Goal | Description |
-
-- **Data Organization**: Groups measurements by monitoring sites in a hierarchical structure|------|-------------|
-
-- **Memory Layout**: Each site maintains its own vector of measurements  | Layout Impact | Measure how row vs column layout affects aggregation, ranking, and point queries |
-
-- **Parallel Strategy**: Thread-local site collections with critical section merging| Parallel Scaling | Evaluate OpenMP overhead/benefit per operation category |
-
-- **Best For**: Site-specific queries and geographical analysis| **Dual Fire Data Models** | **Compare row-oriented vs column-oriented fire data processing architectures** |
-
+| Goal | Description |
+|------|-------------|
+| Layout Impact | Measure how row vs column layout affects aggregation, ranking, and point queries |
+| Parallel Scaling | Evaluate OpenMP overhead/benefit per operation category |
+| **Dual Fire Data Models** | **Compare row-oriented vs column-oriented fire data processing architectures** |
 | **Advanced Benchmarking** | **Comprehensive side-by-side performance comparison with detailed metrics** |
+| Clean Architecture | Provide interface-based design with zero duplicated analytics logic |
+| Deterministic Benchmarks | Fixed repetitions with mean timing + correctness cross-checks |
+| Real-World Performance | Process 500+ fire monitoring CSV files with 1M+ measurements efficiently |
 
-### 🏗️ Fire Column Model (Field-Oriented Storage)  | Clean Architecture | Provide interface-based design with zero duplicated analytics logic |
-
-- **Data Organization**: Stores each data field (latitude, longitude, datetime, etc.) in separate vectors| Deterministic Benchmarks | Fixed repetitions with mean timing + correctness cross-checks |
-
-- **Memory Layout**: 13 columnar vectors for efficient field-based operations| Real-World Performance | Process 500+ fire monitoring CSV files with 1M+ measurements efficiently |
-
-- **Parallel Strategy**: Thread-local column models with vector concatenation merging
-
-- **Best For**: Statistical aggregations and analytical queries---
-
+---
 ## 2. Architecture Overview
-
-## Performance Analysis```
-
+```
 interface/
-
-### Dataset Characteristics  populationModel.hpp              # Row model (vector<PopulationRow>)
-
-- **Files**: 516 CSV files from fire monitoring stations  populationModelColumn.hpp        # Column model (vector<year-columns>)
-
-- **Measurements**: 1,167,525 air quality readings  fireRowModel.hpp                 # Fire data row-oriented model (site-oriented storage)
-
-- **Sites**: 1,398 unique monitoring locations    fireColumnModel.hpp              # Fire data column-oriented model (columnar storage)
-
-- **Parameters**: PM2.5, Ozone, and other air quality indicators  population_service_interface.hpp # IPopulationService abstraction
-
-- **Test Environment**: 8-core system with OpenMP parallelization  service.hpp                      # Concrete services (row & column)
-
+  populationModel.hpp              # Row model (vector<PopulationRow>)
+  populationModelColumn.hpp        # Column model (vector<year-columns>)
+  fireRowModel.hpp                 # Fire data row-oriented model (site-oriented storage)
+  fireColumnModel.hpp              # Fire data column-oriented model (columnar storage)
+  population_service_interface.hpp # IPopulationService abstraction
+  service.hpp                      # Concrete services (row & column)
   benchmark_runner.hpp / benchmark_utils.hpp
-
-### Scalability Results  utils.hpp / constants.hpp / readcsv.hpp
-
+  utils.hpp / constants.hpp / readcsv.hpp
 src/
-
-| Threads | Row Model Time (s) | Row Speedup | Column Model Time (s) | Column Speedup | Row Throughput (files/s) | Column Throughput (files/s) |  populationModel.cpp              # Row ingestion + indexing
-
-|---------|-------------------|-------------|----------------------|----------------|--------------------------|---------------------------|  populationModelColumn.cpp        # Column ingestion + indexing
-
-| 1       | 2.079             | 1.00x       | 2.094                | 1.00x          | 248.2                    | 246.4                     |  fireRowModel.cpp                 # Fire data row-oriented processing + storage
-
-| 2       | 1.328             | 1.57x       | 1.340                | 1.56x          | 388.4                    | 385.0                     |  fireColumnModel.cpp              # Fire data column-oriented processing + storage
-
-| 3       | 1.006             | 2.07x       | 1.037                | 2.02x          | 513.2                    | 497.4                     |  service.cpp / service_column.cpp # Serial + OpenMP analytics implementations
-
-| 4       | 0.828             | 2.51x       | 0.874                | 2.40x          | 622.9                    | 590.6                     |  benchmark_runner.cpp             # Generic templated orchestration
-
-| 8       | 0.806             | 2.58x       | 0.850                | 2.46x          | 640.5                    | 606.8                     |  benchmark_utils.cpp              # CLI, validation, timing utilities
-
+  populationModel.cpp              # Row ingestion + indexing
+  populationModelColumn.cpp        # Column ingestion + indexing
+  fireRowModel.cpp                 # Fire data row-oriented processing + storage
+  fireColumnModel.cpp              # Fire data column-oriented processing + storage
+  service.cpp / service_column.cpp # Serial + OpenMP analytics implementations
+  benchmark_runner.cpp             # Generic templated orchestration
+  benchmark_utils.cpp              # CLI, validation, timing utilities
   synthetic_row_benchmark.cpp      # Synthetic CSV generator harness
-
-### Key Performance Insights  fire_test.cpp                    # Standalone row-oriented fire data test
-
+  fire_test.cpp                    # Standalone row-oriented fire data test
   fire_column_test.cpp             # Standalone column-oriented fire data test
+  main.cpp                         # Entry point: loads data, runs full suite + fire data comparison
+tests/
+  basic_tests.cpp                  # Utility + equivalence tests
+```
 
-#### 1. **Serial Performance Baseline**  main.cpp                         # Entry point: loads data, runs full suite + fire data comparison
-
-- Row Model: **2.079 seconds** (marginally faster baseline)tests/
-
-- Column Model: **2.094 seconds**   basic_tests.cpp                  # Utility + equivalence tests
-
-- **Difference**: Row model is 1.01x faster for single-threaded CSV ingestion```
-
-
-
-#### 2. **Parallel Scaling Characteristics**### Key Abstractions
-
-- **Optimal Thread Count**: 4 threads provide the best price/performance ratio| Layer | Responsibility |
-
-- **Peak Speedup**: Row model achieves 2.58x speedup with 8 threads|-------|----------------|
-
-- **Scaling Pattern**: Both models show diminishing returns beyond 4 threads| Population Models | Physical storage & raw indexed access (row vs column) |
-
-- **Memory Bandwidth Bottleneck**: Performance plateaus due to I/O and memory constraints| **Fire Data Models** | **Dual architectures: row-oriented (site-based) vs column-oriented (columnar arrays)** |
-
+### Key Abstractions
+| Layer | Responsibility |
+|-------|----------------|
+| Population Models | Physical storage & raw indexed access (row vs column) |
+| **Fire Data Models** | **Dual architectures: row-oriented (site-based) vs column-oriented (columnar arrays)** |
 | Services | Analytics methods (sum, avg, min, max, top-N, point, range) via `IPopulationService` |
+| Benchmark Runner | Polymorphic execution over any service implementation |
+| **Fire Data Benchmarks** | **Comprehensive performance comparison between fire data storage architectures** |
+| Utilities | Timing, statistics, parsing, validation, synthetic data |
 
-#### 3. **Processing Efficiency Analysis**| Benchmark Runner | Polymorphic execution over any service implementation |
-
-```| **Fire Data Benchmarks** | **Comprehensive performance comparison between fire data storage architectures** |
-
-Thread Count → Processing Efficiency (Row/Column)| Utilities | Timing, statistics, parsing, validation, synthetic data |
-
-2 threads    → 88.7% / 50.0%
-
-3 threads    → 84.8% / 33.3% ---
-
-4 threads    → 81.2% / 25.0%## 3. Supported Analytics API
-
-8 threads    → 79.4% / 12.5%| Category | Method | Notes |
-
-```|----------|--------|------|
-
+---
+## 3. Supported Analytics API
+| Category | Method | Notes |
+|----------|--------|------|
 | Aggregation | sumPopulationForYear | OpenMP reduction in parallel path |
-
-The Row Model maintains significantly higher processing efficiency, indicating better parallel workload distribution.| Aggregation | averagePopulationForYear | Mean of available entries |
-
+| Aggregation | averagePopulationForYear | Mean of available entries |
 | Aggregation | maxPopulationForYear | Parallel max reduction |
+| Aggregation | minPopulationForYear | Parallel min reduction |
+| Ranking | topNCountriesByPopulationInYear | Per-thread min-heaps merged |
+| Point Query | populationForCountryInYear | Column: direct indexing; Row: map + row vector |
+| Time Series | populationOverYearsForCountry | Row contiguous; Column reassembled |
 
-#### 4. **Throughput Performance**| Aggregation | minPopulationForYear | Parallel min reduction |
-
-- **Peak Throughput**: 640.5 files/second (Row Model, 8 threads)| Ranking | topNCountriesByPopulationInYear | Per-thread min-heaps merged |
-
-- **Practical Optimum**: 622.9 files/second (Row Model, 4 threads)| Point Query | populationForCountryInYear | Column: direct indexing; Row: map + row vector |
-
-- **Efficiency Trade-off**: 4 threads provide 97% of peak throughput with 50% fewer resources| Time Series | populationOverYearsForCountry | Row contiguous; Column reassembled |
-
-
-
-## Parallel Processing Architecture---
-
+---
 ## 4. Fire Data Processing Models
 
-### Row Model Parallel Strategy
+### 4.1 Dual Architecture Overview
+The project now features **two complementary fire data processing architectures**, each optimized for different use cases and performance characteristics:
 
-```cpp### 4.1 Dual Architecture Overview
+#### 🔄 **FireRowModel** (Site-Oriented Storage)
+- **Architecture**: Groups measurements by monitoring site using hierarchical structure
+- **Strengths**: Excellent for site-specific queries and geographic operations
+- **Use Cases**: Site metadata extraction, location-based analysis, agency reporting
 
-1. Thread-local FireRowModel instancesThe project now features **two complementary fire data processing architectures**, each optimized for different use cases and performance characteristics:
+#### 📊 **FireColumnModel** (Columnar Storage)  
+- **Architecture**: Stores each data field in separate vectors for optimal analytics performance
+- **Strengths**: Superior for analytical queries, aggregations, and data science workflows
+- **Use Cases**: Time series analysis, parameter correlation studies, statistical aggregations
 
-2. Dynamic work scheduling across CSV files  
+### 4.2 Comprehensive Performance Comparison
 
-3. Independent site processing per thread#### 🔄 **FireRowModel** (Site-Oriented Storage)
+#### Latest Benchmark Results (516 CSV files, 1.167M measurements, 1,398 sites)
 
-4. Critical section merging of site collections- **Architecture**: Groups measurements by monitoring site using hierarchical structure
-
-5. Hierarchical data consolidation- **Strengths**: Excellent for site-specific queries and geographic operations
-
-```- **Use Cases**: Site metadata extraction, location-based analysis, agency reporting
-
-
-
-**Advantages:**#### 📊 **FireColumnModel** (Columnar Storage)  
-
-- High processing efficiency (79-89%)- **Architecture**: Stores each data field in separate vectors for optimal analytics performance
-
-- Natural data locality for site-based queries- **Strengths**: Superior for analytical queries, aggregations, and data science workflows
-
-- Efficient memory usage patterns- **Use Cases**: Time series analysis, parameter correlation studies, statistical aggregations
-
-
-
-### Column Model Parallel Strategy  ### 4.2 Comprehensive Performance Comparison
-
-```cpp
-
-1. Thread-local columnar vectors#### Latest Benchmark Results (516 CSV files, 1.167M measurements, 1,398 sites)
-
-2. Dynamic file distribution
-
-3. Independent column building per thread| **Model** | **Threads** | **Time (s)** | **Speedup** | **Sites** | **Measurements** | **Files/sec** |
-
-4. Vector concatenation for merging|-----------|-------------|--------------|-------------|-----------|------------------|---------------|
-
-5. Index reconstruction post-merge| **Row-oriented** | 1 | 2.409 | 1.00x | 1,398 | 1,167,525 | 214.2 |
-
-```| **Row-oriented** | 4 | 0.864 | 2.79x | 1,398 | 1,167,525 | 597.2 |
-
+| **Model** | **Threads** | **Time (s)** | **Speedup** | **Sites** | **Measurements** | **Files/sec** |
+|-----------|-------------|--------------|-------------|-----------|------------------|---------------|
+| **Row-oriented** | 1 | 2.409 | 1.00x | 1,398 | 1,167,525 | 214.2 |
+| **Row-oriented** | 4 | 0.864 | 2.79x | 1,398 | 1,167,525 | 597.2 |
 | **Column-oriented** | 1 | 2.196 | 1.00x | 1,397 | 1,167,009 | 235.0 |
+| **Column-oriented** | 4 | 0.895 | 2.45x | 1,397 | 1,167,009 | 576.5 |
 
-**Advantages:**| **Column-oriented** | 4 | 0.895 | 2.45x | 1,397 | 1,167,009 | 576.5 |
-
-- Memory-efficient columnar storage
-
-- Optimized for analytical workloads#### 🎯 **Key Performance Insights**
-
-- Consistent processing patterns- **CSV Ingestion Speed**: Column-oriented is **1.10x faster** for serial processing (2.196s vs 2.409s)
-
+#### 🎯 **Key Performance Insights**
+- **CSV Ingestion Speed**: Column-oriented is **1.10x faster** for serial processing (2.196s vs 2.409s)
 - **Parallel Scaling**: Both models achieve excellent speedup (2.45-2.79x with 4 threads)
-
-## Memory and CPU Analysis- **Parallel Efficiency**: Both achieve **80%+ efficiency**, indicating excellent OpenMP optimization
-
+- **Parallel Efficiency**: Both achieve **80%+ efficiency**, indicating excellent OpenMP optimization
 - **Data Consistency**: Both models process identical datasets with near-perfect measurement counts
 
-### Memory Access Patterns
-
-- **Row Model**: Exhibits better cache locality due to spatial data grouping#### 📈 **Performance Characteristics**
-
-- **Column Model**: Higher memory fragmentation during parallel construction```
-
-- **Merge Phase Impact**: Row model merging is more CPU-efficient (fewer memory allocations)Serial Performance Comparison:
-
+#### 📈 **Performance Characteristics**
+```
+Serial Performance Comparison:
 ✅ Column-oriented model is 1.10x faster than Row-oriented for CSV ingestion
+📊 Row-oriented baseline: 2.409s
+📊 Column-oriented baseline: 2.196s
 
-### CPU Utilization📊 Row-oriented baseline: 2.409s
-
-- **Optimal Core Usage**: 4 cores provide best efficiency/performance ratio📊 Column-oriented baseline: 2.196s
-
-- **Hyper-threading Impact**: Minimal benefit beyond physical core count
-
-- **I/O Bottleneck**: CSV parsing becomes the limiting factor at high thread countsParallel Efficiency:
-
+Parallel Efficiency:
 🚀 Row-oriented: 83.8% efficiency (4 threads)
-
-## Build and Usage Instructions🚀 Column-oriented: 81.2% efficiency (4 threads)
-
+🚀 Column-oriented: 81.2% efficiency (4 threads)
 ```
 
-### Prerequisites
+### 4.3 Architecture Deep Dive
 
-```bash### 4.3 Architecture Deep Dive
-
-# Required tools
-
-- CMake 3.10+#### 🔄 **FireRowModel Architecture**
-
-- OpenMP-compatible compiler (GCC/Clang)```cpp
-
-- C++17 standard supportclass FireMeasurement {
-
-```    // Individual air quality measurement with 13 data fields:
-
+#### 🔄 **FireRowModel Architecture**
+```cpp
+class FireMeasurement {
+    // Individual air quality measurement with 13 data fields:
     // latitude, longitude, datetime, parameter, concentration, unit,
-
-### Build Process    // raw_concentration, aqi, category, site_name, agency_name, 
-
-```bash    // aqs_code, full_aqs_code
-
-# Clone and build};
-
-git clone <repository-url>
-
-cd OpenMP_Mini1_Projectclass FireSiteData {
-
-mkdir build && cd build    // Groups measurements by monitoring site
-
-cmake ..    // Provides indexed access to site measurements
-
-cmake --build .};
-
-```
-
-class FireRowModel {
-
-### Running Benchmarks    // Main container organizing data by monitoring sites
-
-```bash    // Optimized for site-specific queries and geographic operations
-
-# Fire data benchmark with custom parameters};
-
-./OpenMP_Mini1_Project_app --fire --threads 4 --repetitions 3```
-
-
-
-# Full analysis across all thread counts#### 📊 **FireColumnModel Architecture**
-
-./OpenMP_Mini1_Project_app --fire --threads 8 --repetitions 5```cpp
-
-```class FireColumnModel {
-
-    // Columnar storage using separate vectors:
-
-### Command Line Options    std::vector<double> _latitudes, _longitudes, _concentrations;
-
-```bash    std::vector<std::string> _datetimes, _parameters, _site_names;
-
---help              Show usage information    std::vector<int> _aqis, _categories;
-
---threads N         Maximum thread count (default: 4)      // ... additional columnar arrays
-
---repetitions N     Benchmark repetitions (default: 5)    
-
---fire, -f          Enable fire data benchmarking    // Index structures for fast lookups:
-
-```    std::unordered_map<std::string, std::vector<std::size_t>> _site_indices;
-
-    std::unordered_map<std::string, std::vector<std::size_t>> _parameter_indices;
-
-## Technical Implementation Details    std::unordered_map<std::string, std::vector<std::size_t>> _aqs_indices;
-
+    // raw_concentration, aqi, category, site_name, agency_name, 
+    // aqs_code, full_aqs_code
 };
 
-### File Structure```
+class FireSiteData {
+    // Groups measurements by monitoring site
+    // Provides indexed access to site measurements
+};
 
+class FireRowModel {
+    // Main container organizing data by monitoring sites
+    // Optimized for site-specific queries and geographic operations
+};
 ```
 
-src/### 4.4 Parallel Processing Excellence
+#### 📊 **FireColumnModel Architecture**
+```cpp
+class FireColumnModel {
+    // Columnar storage using separate vectors:
+    std::vector<double> _latitudes, _longitudes, _concentrations;
+    std::vector<std::string> _datetimes, _parameters, _site_names;
+    std::vector<int> _aqis, _categories;
+    // ... additional columnar arrays
+    
+    // Index structures for fast lookups:
+    std::unordered_map<std::string, std::vector<std::size_t>> _site_indices;
+    std::unordered_map<std::string, std::vector<std::size_t>> _parameter_indices;
+    std::unordered_map<std::string, std::vector<std::size_t>> _aqs_indices;
+};
+```
 
-├── fireRowModel.cpp     # Site-oriented parallel implementation
+### 4.4 Parallel Processing Excellence
 
-├── fireColumnModel.cpp  # Field-oriented parallel implementation  #### **OpenMP Dynamic Load Balancing**
-
-├── main.cpp            # Comprehensive benchmark suiteBoth models implement sophisticated parallel processing:
-
-└── interface/          # Common interfaces and utilities- **Dynamic Scheduling**: `schedule(dynamic, 1)` for optimal work distribution
-
+#### **OpenMP Dynamic Load Balancing**
+Both models implement sophisticated parallel processing:
+- **Dynamic Scheduling**: `schedule(dynamic, 1)` for optimal work distribution
 - **Thread-Local Collection**: Each thread processes files into local models
-
-data/- **Efficient Merging**: Serial consolidation phase optimized for each storage architecture
-
-└── FireData/           # 516 CSV files (not included in repo)- **Error Resilience**: Robust error recovery with per-thread reporting
-
-```
+- **Efficient Merging**: Serial consolidation phase optimized for each storage architecture
+- **Error Resilience**: Robust error recovery with per-thread reporting
 
 #### **Thread Safety Strategy**
+- **Lock-Free Processing**: No synchronization during main processing loops
+- **Critical Sections**: Minimal use only for console output and error reporting
+- **Barrier Synchronization**: Implicit OpenMP barriers ensure completion before merge
+- **Race Condition Prevention**: Thread-local storage eliminates data races
 
-### Data Processing Pipeline- **Lock-Free Processing**: No synchronization during main processing loops
+### 4.5 Feature Comparison Matrix
 
-1. **File Discovery**: Recursive CSV file enumeration- **Critical Sections**: Minimal use only for console output and error reporting
-
-2. **Thread Allocation**: Dynamic work distribution via OpenMP- **Barrier Synchronization**: Implicit OpenMP barriers ensure completion before merge
-
-3. **Parallel Parsing**: Concurrent CSV reading and data extraction  - **Race Condition Prevention**: Thread-local storage eliminates data races
-
-4. **Data Merging**: Model-specific consolidation strategies
-
-5. **Performance Metrics**: Timing analysis and efficiency calculation### 4.5 Feature Comparison Matrix
-
-
-
-## Research Implications| **Feature** | **FireRowModel** | **FireColumnModel** | **Winner** |
-
+| **Feature** | **FireRowModel** | **FireColumnModel** | **Winner** |
 |-------------|------------------|---------------------|------------|
-
-### Parallel Programming Insights| **CSV Ingestion Speed** | 2.409s (serial) | 2.196s (serial) | 🏆 Column |
-
-- **Work Distribution**: Dynamic scheduling provides better load balancing than static allocation| **Parallel Scaling** | 2.79x (4 threads) | 2.45x (4 threads) | 🏆 Row |
-
-- **Memory Hierarchy**: Data structure choice significantly impacts parallel efficiency  | **Site-Specific Queries** | Optimized | Index-based | 🏆 Row |
-
-- **Scalability Limits**: I/O-bound workloads exhibit performance plateaus beyond optimal thread counts| **Analytics Operations** | Good | Excellent | 🏆 Column |
-
+| **CSV Ingestion Speed** | 2.409s (serial) | 2.196s (serial) | 🏆 Column |
+| **Parallel Scaling** | 2.79x (4 threads) | 2.45x (4 threads) | 🏆 Row |
+| **Site-Specific Queries** | Optimized | Index-based | 🏆 Row |
+| **Analytics Operations** | Good | Excellent | 🏆 Column |
 | **Memory Layout** | Site-grouped | Cache-friendly columns | 🏆 Column |
-
-### Real-World Applications| **Geographic Queries** | Native support | Index-supported | 🏆 Row |
-
-- **Environmental Monitoring**: Large-scale air quality data processing| **Time Series Analysis** | Requires aggregation | Direct column access | 🏆 Column |
-
-- **Scientific Computing**: Parallel data ingestion for research datasets| **Implementation Complexity** | Moderate | Higher | 🏆 Row |
-
-- **Performance Optimization**: Architecture-aware parallel design patterns
+| **Geographic Queries** | Native support | Index-supported | 🏆 Row |
+| **Time Series Analysis** | Requires aggregation | Direct column access | 🏆 Column |
+| **Implementation Complexity** | Moderate | Higher | 🏆 Row |
 
 ### 4.6 Usage Examples
 
-## Performance Recommendations
-
 #### **Comparative Fire Data Processing**
-
-### Production Deployment```cpp
-
-1. **Use 4 threads** for optimal efficiency/performance balance// Initialize both models for comparison
-
-2. **Row Model preferred** for site-centric analysis workflowsFireRowModel rowModel;
-
-3. **Column Model preferred** for statistical and analytical operationsFireColumnModel columnModel;
-
-4. **SSD storage recommended** to minimize I/O bottlenecks
+```cpp
+// Initialize both models for comparison
+FireRowModel rowModel;
+FireColumnModel columnModel;
 
 // Process same dataset with both architectures
+auto start = std::chrono::high_resolution_clock::now();
 
-### Hardware Considerationsauto start = std::chrono::high_resolution_clock::now();
-
-- **Memory**: 8GB+ RAM recommended for large datasets
-
-- **Storage**: NVMe SSD provides optimal CSV read performance// Row-oriented processing
-
-- **CPU**: 4+ physical cores with OpenMP supportrowModel.readFromDirectoryParallel("data/FireData", 4);
-
+// Row-oriented processing
+rowModel.readFromDirectoryParallel("data/FireData", 4);
 auto row_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-
-## Conclusion    std::chrono::high_resolution_clock::now() - start).count();
-
-
-
-This comprehensive analysis demonstrates that **parallel CSV ingestion performance is highly dependent on data organization strategy**. The Row Model's superior parallel efficiency (79-89% vs 12-50%) makes it the optimal choice for fire monitoring data processing, achieving **2.58x speedup** with **640+ files/second throughput** on modern hardware.start = std::chrono::high_resolution_clock::now();
-
-
-
-The project showcases practical applications of OpenMP parallel programming patterns and provides valuable insights for designing high-performance data processing systems in environmental monitoring and scientific computing domains.// Column-oriented processing
-
-columnModel.readFromDirectory("data/FireData", 4);
-
----auto col_time = std::chrono::duration_cast<std::chrono::milliseconds>(
-
     std::chrono::high_resolution_clock::now() - start).count();
 
-**Authors**: Environmental Data Processing Research Team  
+start = std::chrono::high_resolution_clock::now();
 
-**Last Updated**: October 2025  // Compare results
+// Column-oriented processing
+columnModel.readFromDirectory("data/FireData", 4);
+auto col_time = std::chrono::duration_cast<std::chrono::milliseconds>(
+    std::chrono::high_resolution_clock::now() - start).count();
 
-**License**: MIT License  std::cout << "Row model: " << rowModel.siteCount() << " sites, " 
-
-**Repository**: [OpenMP_Mini1_Project](https://github.com/harbul/OpenMP_Mini1_Project)          << rowModel.totalMeasurements() << " measurements (" << row_time << "ms)\n";
+// Compare results
+std::cout << "Row model: " << rowModel.siteCount() << " sites, " 
+          << rowModel.totalMeasurements() << " measurements (" << row_time << "ms)\n";
 std::cout << "Column model: " << columnModel.siteCount() << " sites, " 
           << columnModel.measurementCount() << " measurements (" << col_time << "ms)\n";
 ```

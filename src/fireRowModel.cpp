@@ -8,6 +8,8 @@
 #include <filesystem>
 #include <iostream>
 #include <omp.h>
+#include <chrono>
+#include <iomanip>
 
 // ============================================================================
 // FireMeasurement Implementation
@@ -156,7 +158,7 @@ void FireRowModel::readFromCSV(const std::string& filename) {
     }
     
     reader.close();
-    std::cout << "Loaded " << line_number << " measurements from " << filename << std::endl;
+    // Remove verbose per-file output - will be summarized later
 }
 
 void FireRowModel::readFromMultipleCSV(const std::vector<std::string>& filenames) {
@@ -187,8 +189,12 @@ void FireRowModel::readFromMultipleCSVParallel(const std::vector<std::string>& f
     // Create thread-local models (one per thread)
     std::vector<FireRowModel> thread_models(num_threads);
     
+    // Track per-thread work
+    std::vector<int> files_per_thread(num_threads, 0);
+    std::vector<int> measurements_per_thread(num_threads, 0);
+    
     // Track timing for performance analysis
-    double start_time = omp_get_wtime();
+    auto start_time = std::chrono::high_resolution_clock::now();
     
     #pragma omp parallel num_threads(num_threads)
     {
@@ -200,12 +206,7 @@ void FireRowModel::readFromMultipleCSVParallel(const std::vector<std::string>& f
             try {
                 thread_models[thread_id].readFromCSV(filenames[i]);
                 files_processed++;
-                
-                #pragma omp critical(output)
-                {
-                    std::cout << "Thread " << thread_id << " completed: " 
-                              << filenames[i] << " (file " << (i+1) << "/" << filenames.size() << ")" << std::endl;
-                }
+                // No verbose per-file output
             } catch (const std::exception& e) {
                 #pragma omp critical(error_output)
                 {
@@ -215,34 +216,40 @@ void FireRowModel::readFromMultipleCSVParallel(const std::vector<std::string>& f
             }
         }
         
-        #pragma omp critical(thread_summary)
-        {
-            std::cout << "Thread " << thread_id << " processed " << files_processed << " files." << std::endl;
-        }
+        files_per_thread[thread_id] = files_processed;
+        measurements_per_thread[thread_id] = thread_models[thread_id].totalMeasurements();
     }
     // OpenMP barrier is implicit at end of parallel region
     
-    double parallel_time = omp_get_wtime() - start_time;
-    std::cout << "Parallel processing completed in " << parallel_time << " seconds." << std::endl;
+    auto parallel_end = std::chrono::high_resolution_clock::now();
+    auto parallel_duration = std::chrono::duration_cast<std::chrono::milliseconds>(parallel_end - start_time);
     
     // Serial merge phase
-    std::cout << "Starting merge phase..." << std::endl;
-    double merge_start = omp_get_wtime();
+    auto merge_start = std::chrono::high_resolution_clock::now();
     
     for (int t = 0; t < num_threads; ++t) {
         if (thread_models[t].totalMeasurements() > 0) {
-            std::cout << "Merging " << thread_models[t].totalMeasurements() 
-                      << " measurements from thread " << t << std::endl;
             mergeFromModel(thread_models[t]);
         }
     }
     
-    double merge_time = omp_get_wtime() - merge_start;
-    double total_time = omp_get_wtime() - start_time;
+    auto merge_end = std::chrono::high_resolution_clock::now();
+    auto merge_duration = std::chrono::duration_cast<std::chrono::milliseconds>(merge_end - merge_start);
+    auto total_duration = std::chrono::duration_cast<std::chrono::milliseconds>(merge_end - start_time);
     
-    std::cout << "Merge phase completed in " << merge_time << " seconds." << std::endl;
-    std::cout << "Total processing time: " << total_time << " seconds." << std::endl;
-    std::cout << "Parallel efficiency: " << (parallel_time / total_time * 100) << "%" << std::endl;
+    // Print clean summary
+    std::cout << "\n=== Fire Row Model Processing Summary ===" << std::endl;
+    for (int i = 0; i < num_threads; ++i) {
+        if (files_per_thread[i] > 0) {
+            std::cout << "Thread " << i << " processed " << files_per_thread[i] 
+                     << " files, " << measurements_per_thread[i] << " measurements" << std::endl;
+        }
+    }
+    std::cout << "Parallel Processing: " << parallel_duration.count() << " ms" << std::endl;
+    std::cout << "Data Merging: " << merge_duration.count() << " ms" << std::endl;
+    std::cout << "Total Time: " << total_duration.count() << " ms" << std::endl;
+    std::cout << "Processing Efficiency: " << std::fixed << std::setprecision(1) 
+              << (double)parallel_duration.count() / total_duration.count() * 100 << "%" << std::endl;
 }
 
 void FireRowModel::readFromDirectory(const std::string& directory_path) {

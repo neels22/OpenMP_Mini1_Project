@@ -14,6 +14,7 @@
 #include "../interface/benchmark_utils.hpp"
 #include "../interface/constants.hpp"
 #include "../interface/fireRowModel.hpp"
+#include "../interface/fireColumnModel.hpp"
 
 /**
  * @file main.cpp
@@ -123,69 +124,160 @@ namespace {
                                          [&](int t) { return t > std::min(maxThreads, static_cast<int>(csv_files.size())); }), 
                            thread_counts.end());
 
-        std::cout << std::setw(12) << "Threads" 
+        std::cout << std::setw(15) << "Model" 
+                  << std::setw(10) << "Threads" 
                   << std::setw(15) << "Avg Time (s)" 
                   << std::setw(12) << "Speedup" 
                   << std::setw(15) << "Sites" 
                   << std::setw(18) << "Measurements" 
                   << std::setw(12) << "Files/sec" 
                   << "\n";
-        std::cout << std::string(84, '-') << "\n";
+        std::cout << std::string(100, '-') << "\n";
 
-        double baseline_time = 0.0;
+        double row_baseline_time = 0.0;
+        double column_baseline_time = 0.0;
         
         for (int num_threads : thread_counts) {
-            std::vector<double> run_times;
-            std::size_t final_sites = 0;
-            std::size_t final_measurements = 0;
+            // Benchmark FireRowModel
+            {
+                std::vector<double> run_times;
+                std::size_t final_sites = 0;
+                std::size_t final_measurements = 0;
 
-            for (int rep = 0; rep < repetitions; ++rep) {
-                FireRowModel fire_model;
-                
-                auto start = std::chrono::high_resolution_clock::now();
-                
-                try {
-                    if (num_threads == 1) {
-                        fire_model.readFromMultipleCSV(csv_files);
-                    } else {
-                        fire_model.readFromMultipleCSVParallel(csv_files, num_threads);
+                for (int rep = 0; rep < repetitions; ++rep) {
+                    FireRowModel fire_model;
+                    
+                    auto start = std::chrono::high_resolution_clock::now();
+                    
+                    try {
+                        if (num_threads == 1) {
+                            fire_model.readFromMultipleCSV(csv_files);
+                        } else {
+                            fire_model.readFromMultipleCSVParallel(csv_files, num_threads);
+                        }
+                    } catch (const std::exception& e) {
+                        std::cerr << "Error processing files with FireRowModel " << num_threads << " threads: " << e.what() << "\n";
+                        continue;
                     }
-                } catch (const std::exception& e) {
-                    std::cerr << "Error processing files with " << num_threads << " threads: " << e.what() << "\n";
-                    continue;
+                    
+                    auto end = std::chrono::high_resolution_clock::now();
+                    auto duration = std::chrono::duration<double>(end - start);
+                    run_times.push_back(duration.count());
+                    
+                    if (rep == 0) {  // Store results from first run
+                        final_sites = fire_model.siteCount();
+                        final_measurements = fire_model.totalMeasurements();
+                    }
                 }
-                
-                auto end = std::chrono::high_resolution_clock::now();
-                auto duration = std::chrono::duration<double>(end - start);
-                run_times.push_back(duration.count());
-                
-                if (rep == 0) {  // Store results from first run
-                    final_sites = fire_model.siteCount();
-                    final_measurements = fire_model.totalMeasurements();
+
+                if (!run_times.empty()) {
+                    // Calculate statistics
+                    double avg_time = 0.0;
+                    for (double time : run_times) avg_time += time;
+                    avg_time /= run_times.size();
+
+                    if (num_threads == 1) {
+                        row_baseline_time = avg_time;
+                    }
+
+                    double speedup = (row_baseline_time > 0) ? row_baseline_time / avg_time : 1.0;
+                    double files_per_sec = csv_files.size() / avg_time;
+
+                    std::cout << std::setw(15) << "Row-oriented" 
+                              << std::setw(10) << num_threads 
+                              << std::setw(15) << std::fixed << std::setprecision(3) << avg_time
+                              << std::setw(12) << std::fixed << std::setprecision(2) << speedup << "x"
+                              << std::setw(15) << final_sites
+                              << std::setw(18) << final_measurements
+                              << std::setw(12) << std::fixed << std::setprecision(1) << files_per_sec
+                              << "\n";
                 }
             }
 
-            if (run_times.empty()) continue;
+            // Benchmark FireColumnModel
+            {
+                std::vector<double> run_times;
+                std::size_t final_sites = 0;
+                std::size_t final_measurements = 0;
 
-            // Calculate statistics
-            double avg_time = 0.0;
-            for (double time : run_times) avg_time += time;
-            avg_time /= run_times.size();
+                for (int rep = 0; rep < repetitions; ++rep) {
+                    FireColumnModel fire_model;
+                    
+                    auto start = std::chrono::high_resolution_clock::now();
+                    
+                    try {
+                        fire_model.readFromDirectory(fireDataPath, num_threads);
+                    } catch (const std::exception& e) {
+                        std::cerr << "Error processing files with FireColumnModel " << num_threads << " threads: " << e.what() << "\n";
+                        continue;
+                    }
+                    
+                    auto end = std::chrono::high_resolution_clock::now();
+                    auto duration = std::chrono::duration<double>(end - start);
+                    run_times.push_back(duration.count());
+                    
+                    if (rep == 0) {  // Store results from first run
+                        final_sites = fire_model.siteCount();
+                        final_measurements = fire_model.measurementCount();
+                    }
+                }
 
-            if (num_threads == 1) {
-                baseline_time = avg_time;
+                if (!run_times.empty()) {
+                    // Calculate statistics
+                    double avg_time = 0.0;
+                    for (double time : run_times) avg_time += time;
+                    avg_time /= run_times.size();
+
+                    if (num_threads == 1) {
+                        column_baseline_time = avg_time;
+                    }
+
+                    double speedup = (column_baseline_time > 0) ? column_baseline_time / avg_time : 1.0;
+                    double files_per_sec = csv_files.size() / avg_time;
+
+                    std::cout << std::setw(15) << "Column-oriented" 
+                              << std::setw(10) << num_threads 
+                              << std::setw(15) << std::fixed << std::setprecision(3) << avg_time
+                              << std::setw(12) << std::fixed << std::setprecision(2) << speedup << "x"
+                              << std::setw(15) << final_sites
+                              << std::setw(18) << final_measurements
+                              << std::setw(12) << std::fixed << std::setprecision(1) << files_per_sec
+                              << "\n";
+                }
             }
 
-            double speedup = (baseline_time > 0) ? baseline_time / avg_time : 1.0;
-            double files_per_sec = csv_files.size() / avg_time;
+            if (num_threads < thread_counts.back()) {
+                std::cout << std::string(100, '-') << "\n";
+            }
+        }
+        
+        std::cout << std::string(100, '-') << "\n\n";
+        
+        // Explain the benchmark metrics
+        std::cout << "=== Benchmark Metrics Explained ===\n";
+        std::cout << "Model: Data storage architecture (Row-oriented stores by sites, Column-oriented stores by fields)\n";
+        std::cout << "Threads: Number of parallel OpenMP threads used for CSV processing\n";
+        std::cout << "Avg Time: Average processing time in seconds (lower is better)\n";
+        std::cout << "Speedup: Performance improvement vs single-threaded baseline (higher is better)\n";
+        std::cout << "Sites: Number of unique monitoring sites found in the data\n";
+        std::cout << "Measurements: Total number of fire/air quality measurements processed\n";
+        std::cout << "Files/sec: Processing throughput - CSV files processed per second\n\n";
 
-            std::cout << std::setw(12) << num_threads 
-                      << std::setw(15) << std::fixed << std::setprecision(3) << avg_time
-                      << std::setw(12) << std::fixed << std::setprecision(2) << speedup << "x"
-                      << std::setw(15) << final_sites
-                      << std::setw(18) << final_measurements
-                      << std::setw(12) << std::fixed << std::setprecision(1) << files_per_sec
-                      << "\n";
+        // Summary comparison
+        if (row_baseline_time > 0.0 && column_baseline_time > 0.0) {
+            std::cout << "\n=== Model Comparison Summary ===\n";
+            std::cout << "Serial Performance Comparison:\n";
+            if (row_baseline_time < column_baseline_time) {
+                double improvement = column_baseline_time / row_baseline_time;
+                std::cout << "Row-oriented model is " << std::fixed << std::setprecision(2) 
+                          << improvement << "x faster than Column-oriented for CSV ingestion\n";
+            } else {
+                double improvement = row_baseline_time / column_baseline_time;
+                std::cout << "Column-oriented model is " << std::fixed << std::setprecision(2) 
+                          << improvement << "x faster than Row-oriented for CSV ingestion\n";
+            }
+            std::cout << "Row-oriented baseline: " << std::fixed << std::setprecision(3) << row_baseline_time << "s\n";
+            std::cout << "Column-oriented baseline: " << std::fixed << std::setprecision(3) << column_baseline_time << "s\n";
         }
 
         std::cout << "\nBenchmark completed successfully.\n";
