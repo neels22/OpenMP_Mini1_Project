@@ -187,16 +187,13 @@ namespace BenchmarkUtils {
         auto serialTimes = Utils::timeCallMulti(serialFn, repetitions);
         auto parallelTimes = Utils::timeCallMulti(parallelFn, repetitions);
         
-        double serialMedian = Utils::median(serialTimes);
-        double parallelMedian = Utils::median(parallelTimes);
-        double serialStddev = Utils::stddev(serialTimes);
-        double parallelStddev = Utils::stddev(parallelTimes);
+        double serialMean = Utils::mean(serialTimes);
+        double parallelMean = Utils::mean(parallelTimes);
         
         std::cout << std::fixed << std::setprecision(3);
-        std::cout << label << ": serial_t_median=" << serialMedian 
-                  << " us stddev=" << serialStddev 
-                  << ", parallel_t_median=" << parallelMedian 
-                  << " us stddev=" << parallelStddev << "\n";
+        std::cout << label << ": serial_t_mean=" << serialMean 
+                  << " us, parallel_t_mean=" << parallelMean 
+                  << " us\n";
     }
     
     int getSafeMidYear(const PopulationModel& model) {

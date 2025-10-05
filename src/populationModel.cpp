@@ -33,17 +33,16 @@ const std::vector<long long>& PopulationModel::years() const noexcept { return _
 
 // Build a temporary per-instance map from country name to row index using the header-provided maps.
 const std::unordered_map<std::string, int>& PopulationModel::countryNameToIndex() const noexcept {
-    // cache built per-instance in a static map keyed by this pointer
-    static thread_local std::unordered_map<const PopulationModel*, std::unordered_map<std::string,int>> cache;
-    auto &entry = cache[this];
-    entry.clear();
+    // cache built per-instance in a thread_local variable
+    thread_local std::unordered_map<std::string, int> cache;
+    cache.clear();
     for (const auto& kv : _countryNameToCountryCode) {
         const std::string& cname = kv.first;
         const std::string& code = kv.second;
         auto it = _countryCodeToRowIndex.find(code);
-        if (it != _countryCodeToRowIndex.end()) entry[cname] = it->second;
+        if (it != _countryCodeToRowIndex.end()) cache[cname] = it->second;
     }
-    return entry;
+    return cache;
 }
 
 const std::unordered_map<long long, int>& PopulationModel::yearToIndex() const noexcept { return _yearToIndex; }
@@ -86,7 +85,11 @@ void PopulationModel::insertNewEntry(std::string country, std::string contry_cod
 
 void PopulationModel::readFromCSV(const std::string& filename) {
     CSVReader reader(filename);
-    try { reader.open(); } catch (const std::exception& e) { std::cerr << "Failed to open CSV: " << e.what() << "\n"; return; }
+    try { 
+        reader.open();
+    } catch (const std::exception& e) {
+        std::cerr << "Failed to open CSV: " << e.what() << "\n"; return;
+    }
     std::vector<std::string> row;
     bool headerRead = false;
     std::vector<long long> yearsLocal;

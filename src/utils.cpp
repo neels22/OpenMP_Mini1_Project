@@ -62,6 +62,13 @@ namespace Utils {
         return 0.5 * (v[m-1] + v[m]);
     }
 
+    double mean(const std::vector<double>& v) {
+        if (v.empty()) return 0.0;
+        double sum = 0.0;
+        for (double x : v) sum += x;
+        return sum / v.size();
+    }
+
     double stddev(const std::vector<double>& v) {
         if (v.size() < 2) return 0.0;
         

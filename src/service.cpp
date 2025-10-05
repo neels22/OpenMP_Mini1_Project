@@ -6,7 +6,6 @@
 #include <chrono>
 #include <queue>
 #include <functional>
-
 #include <omp.h>
 
 PopulationModelService::PopulationModelService(PopulationModel* m) : model_(m) {}

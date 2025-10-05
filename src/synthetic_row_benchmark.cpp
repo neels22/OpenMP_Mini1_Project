@@ -36,7 +36,7 @@ int main(int argc, char** argv) {
     } catch (...) {
         // ignore
     }
-    const std::string csvPath = "data/PopulationData/population.csv";
+    const std::string csvPath = "data/PopulationData/population_synthetic.csv";
     std::ofstream csv(csvPath);
     if (!csv) {
         std::cerr << "Failed to create CSV at "<<csvPath<<"\n";

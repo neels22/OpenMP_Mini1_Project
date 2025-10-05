@@ -61,6 +61,15 @@ namespace Utils {
      * Sorts the input vector and returns the middle value.
      * For even-sized vectors, returns the average of the two middle values.
      */
+    /**
+     * @brief Calculate mean (average) of a vector of values
+     * @param v Vector of values (const reference)
+     * @return Arithmetic mean, or 0.0 if vector is empty
+     * 
+     * Calculates the arithmetic mean of all values in the vector.
+     */
+    double mean(const std::vector<double>& v);
+    
     double median(std::vector<double> v);
     
     /**

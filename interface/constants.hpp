@@ -27,7 +27,7 @@ namespace Config {
     
     /// Default number of years to generate in synthetic datasets
     /// Represents a typical multi-decade time series
-    constexpr std::size_t DEFAULT_SYNTHETIC_YEARS = 50;
+    constexpr std::size_t DEFAULT_SYNTHETIC_YEARS = 100;
     
     /// Starting year for synthetic data generation
     /// Base year from which synthetic time series begins

@@ -31,35 +31,6 @@
 
 namespace {
     /**
-     * Create synthetic test data for interface demonstration
-     */
-    void createSyntheticData(PopulationModel& model, PopulationModelColumn& modelCol) {
-        // Create small synthetic dataset for testing
-        std::vector<long long> years = {2020, 2021, 2022};
-        
-        // Set years for both models
-        model.setYears(years);
-        modelCol.setYears(years);
-        
-        // Add a few countries with test data
-        std::vector<long long> country1_data = {1000000, 1100000, 1200000};
-        std::vector<long long> country2_data = {2000000, 2200000, 2400000};
-        std::vector<long long> country3_data = {500000, 550000, 600000};
-        
-        // Add to row model using insertNewEntry
-        model.insertNewEntry("Country1", "C1", "IND1", "IC1", country1_data);
-        model.insertNewEntry("Country2", "C2", "IND2", "IC2", country2_data);
-        model.insertNewEntry("Country3", "C3", "IND3", "IC3", country3_data);
-        
-        // Add to column model using the same API
-        modelCol.insertNewEntry("Country1", "C1", "IND1", "IC1", country1_data);
-        modelCol.insertNewEntry("Country2", "C2", "IND2", "IC2", country2_data);
-        modelCol.insertNewEntry("Country3", "C3", "IND3", "IC3", country3_data);
-        
-        std::cout << "Created synthetic dataset with 3 countries and 3 years\n";
-    }
-
-    /**
      * Print model information for verification
      */
     void printModelInfo(const PopulationModel& model, const PopulationModelColumn& modelCol) {
@@ -95,6 +66,11 @@ namespace {
         // Use middle year for better data coverage
         return static_cast<int>(years[years.size() / 2]);
     }
+     std::string getCSVPath() {
+        const char* envCsv = std::getenv("CSV_PATH");
+        return envCsv ? std::string(envCsv) : std::string("data/PopulationData/population.csv");
+    }
+
 }
 
 int main(int argc, char* argv[]) {
@@ -120,7 +96,14 @@ int main(int argc, char* argv[]) {
         PopulationModel model;
         PopulationModelColumn modelCol;
         
-        createSyntheticData(model, modelCol);
+        // Initialize models with error handling
+        std::string csvPath = getCSVPath();
+        
+        auto initResult = BenchmarkUtils::initializeModels(csvPath, model, modelCol);
+        if (!initResult.success) {
+            std::cerr << "Error: " << initResult.errorMessage << "\n";
+            return 1;
+        }
         
         // Validate models
         auto validation = BenchmarkUtils::validateModels(model, modelCol);
@@ -160,16 +143,6 @@ int main(int argc, char* argv[]) {
             model.years(), 
             config
         );
-        
-        std::cout << "✅ All benchmarks completed successfully!\n";
-        std::cout << "\nKey Insights from Interface-Based Design:\n";
-        std::cout << "- ✅ Eliminated duplicate benchmark code through IPopulationService interface\n";
-        std::cout << "- ✅ Generic templates enable type-safe polymorphic benchmarking\n";
-        std::cout << "- ✅ Automatic result validation ensures implementation correctness\n";
-        std::cout << "- ✅ Both implementations satisfy identical service contracts\n";
-        std::cout << "- ✅ Single benchmark suite works with any service implementation\n";
-        std::cout << "- ✅ Reduced main.cpp from 300+ lines to ~140 lines through abstraction\n\n";
-        
         return 0;
         
     } catch (const std::exception& e) {
