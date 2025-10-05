@@ -39,20 +39,20 @@ long long PopulationModelColumnService::sumPopulationForYear(int year, int numTh
     std::size_t yearIndex = static_cast<std::size_t>(it->second);
     
     long long total = 0;
-    std::size_t rows = model_->rowCount();
+    std::size_t columns = model_->columnCount(); //size_t - 0-n unsigned int meaning positive number
     
     if (numThreads > 1) {
         // Parallel reduction over contiguous memory for optimal cache usage
         omp_set_num_threads(numThreads);
 #pragma omp parallel for reduction(+:total)
-        for (std::size_t i = 0; i < rows; ++i) {
+        for (std::size_t i = 0; i < columns; ++i) {
             total += model_->getPopulationForCountryYear(i, yearIndex);
         }
         return total;
     }
     
     // Serial version for comparison - same access pattern
-    for (std::size_t i = 0; i < rows; ++i) {
+    for (std::size_t i = 0; i < columns; ++i) {
         total += model_->getPopulationForCountryYear(i, yearIndex);
     }
     return total;
@@ -66,23 +66,23 @@ double PopulationModelColumnService::averagePopulationForYear(int year, int numT
     std::size_t yearIndex = static_cast<std::size_t>(it->second);
     
     long long total = 0;
-    std::size_t rows = model_->rowCount();
+    std::size_t columns = model_->columnCount();
     
     if (numThreads > 1) {
         // Parallel reduction with same pattern as sum for consistency
         omp_set_num_threads(numThreads);
 #pragma omp parallel for reduction(+:total)
-        for (std::size_t i = 0; i < rows; ++i) {
+        for (std::size_t i = 0; i < columns; ++i) {
             total += model_->getPopulationForCountryYear(i, yearIndex);
         }
-        return rows > 0 ? static_cast<double>(total) / static_cast<double>(rows) : 0.0;
+        return columns > 0 ? static_cast<double>(total) / static_cast<double>(columns) : 0.0;
     }
     
     // Serial calculation
-    for (std::size_t i = 0; i < rows; ++i) {
+    for (std::size_t i = 0; i < columns; ++i) {
         total += model_->getPopulationForCountryYear(i, yearIndex);
     }
-    return rows > 0 ? static_cast<double>(total) / static_cast<double>(rows) : 0.0;
+    return columns > 0 ? static_cast<double>(total) / static_cast<double>(columns) : 0.0;
 }
 
 long long PopulationModelColumnService::maxPopulationForYear(int year, int numThreads) const {
@@ -90,7 +90,7 @@ long long PopulationModelColumnService::maxPopulationForYear(int year, int numTh
     auto it = yearMap.find(year);
     if (it == yearMap.end()) return 0;
     std::size_t yearIndex = static_cast<std::size_t>(it->second);
-    std::size_t rows = model_->rowCount();
+    std::size_t columns = model_->columnCount();
     long long global_max = std::numeric_limits<long long>::min();
     if (numThreads > 1) {
         omp_set_num_threads(numThreads);
@@ -98,13 +98,13 @@ long long PopulationModelColumnService::maxPopulationForYear(int year, int numTh
         {
             long long local_max = std::numeric_limits<long long>::min();
 #pragma omp for nowait
-            for (std::size_t i = 0; i < rows; ++i) local_max = std::max(local_max, model_->getPopulationForCountryYear(i, yearIndex));
+            for (std::size_t i = 0; i < columns; ++i) local_max = std::max(local_max, model_->getPopulationForCountryYear(i, yearIndex));
 #pragma omp critical
             { global_max = std::max(global_max, local_max); }
         }
         return global_max == std::numeric_limits<long long>::min() ? 0 : global_max;
     }
-    for (std::size_t i = 0; i < rows; ++i) global_max = std::max(global_max, model_->getPopulationForCountryYear(i, yearIndex));
+    for (std::size_t i = 0; i < columns; ++i) global_max = std::max(global_max, model_->getPopulationForCountryYear(i, yearIndex));
     return global_max == std::numeric_limits<long long>::min() ? 0 : global_max;
 }
 
@@ -113,7 +113,7 @@ long long PopulationModelColumnService::minPopulationForYear(int year, int numTh
     auto it = yearMap.find(year);
     if (it == yearMap.end()) return 0;
     std::size_t yearIndex = static_cast<std::size_t>(it->second);
-    std::size_t rows = model_->rowCount();
+    std::size_t columns = model_->columnCount();
     long long global_min = std::numeric_limits<long long>::max();
     if (numThreads > 1) {
         omp_set_num_threads(numThreads);
@@ -121,13 +121,13 @@ long long PopulationModelColumnService::minPopulationForYear(int year, int numTh
         {
             long long local_min = std::numeric_limits<long long>::max();
 #pragma omp for nowait
-            for (std::size_t i = 0; i < rows; ++i) local_min = std::min(local_min, model_->getPopulationForCountryYear(i, yearIndex));
+            for (std::size_t i = 0; i < columns; ++i) local_min = std::min(local_min, model_->getPopulationForCountryYear(i, yearIndex));
 #pragma omp critical
             { global_min = std::min(global_min, local_min); }
         }
         return global_min == std::numeric_limits<long long>::max() ? 0 : global_min;
     }
-    for (std::size_t i = 0; i < rows; ++i) global_min = std::min(global_min, model_->getPopulationForCountryYear(i, yearIndex));
+    for (std::size_t i = 0; i < columns; ++i) global_min = std::min(global_min, model_->getPopulationForCountryYear(i, yearIndex));
     return global_min == std::numeric_limits<long long>::max() ? 0 : global_min;
 }
 
@@ -148,7 +148,7 @@ std::vector<std::pair<std::string, long long>> PopulationModelColumnService::top
     auto it = yearMap.find(year);
     if (it == yearMap.end()) return {};
     std::size_t yearIndex = static_cast<std::size_t>(it->second);
-    std::size_t rows = model_->rowCount();
+    std::size_t columns = model_->columnCount();
 
     if (numThreads > 1) {
         omp_set_num_threads(numThreads);
@@ -163,7 +163,7 @@ std::vector<std::pair<std::string, long long>> PopulationModelColumnService::top
             int tid = omp_get_thread_num();
             MinHeap &heap = localHeaps[static_cast<std::size_t>(tid)];
 #pragma omp for nowait
-            for (std::size_t i = 0; i < rows; ++i) {
+            for (std::size_t i = 0; i < columns; ++i) {
                 long long val = model_->getPopulationForCountryYear(i, yearIndex);
                 HeapElem e{val, model_->countryNames()[i]};
                 if (heap.size() < n) heap.push(e);
@@ -191,8 +191,8 @@ std::vector<std::pair<std::string, long long>> PopulationModelColumnService::top
     }
 
     std::vector<std::pair<std::string,long long>> out;
-    out.reserve(rows);
-    for (std::size_t i = 0; i < rows; ++i) out.emplace_back(model_->countryNames()[i], model_->getPopulationForCountryYear(i, yearIndex));
+    out.reserve(columns);
+    for (std::size_t i = 0; i < columns; ++i) out.emplace_back(model_->countryNames()[i], model_->getPopulationForCountryYear(i, yearIndex));
     std::sort(out.begin(), out.end(), [](const auto &a, const auto &b){ return a.second > b.second; });
     if (out.size() > n) out.resize(n);
     return out;

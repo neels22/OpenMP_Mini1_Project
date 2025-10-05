@@ -143,7 +143,7 @@ namespace BenchmarkUtils {
             return ValidationResult(false, "No data rows found in row model");
         }
         
-        if (modelCol.rowCount() == 0) {
+    if (modelCol.columnCount() == 0) {
             return ValidationResult(false, "No data rows found in column model");
         }
         
@@ -151,7 +151,7 @@ namespace BenchmarkUtils {
             return ValidationResult(false, "Year count mismatch between models");
         }
         
-        if (model.rowCount() != modelCol.rowCount()) {
+    if (model.rowCount() != modelCol.columnCount()) {
             return ValidationResult(false, "Row count mismatch between models");
         }
         

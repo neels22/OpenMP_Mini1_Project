@@ -42,7 +42,7 @@ namespace {
         std::cout << "\n=== Model Information ===\n";
         std::cout << "Row Model: " << model.rowCount() << " countries, " 
                   << model.years().size() << " years\n";
-        std::cout << "Column Model: " << modelCol.rowCount() << " countries, " 
+    std::cout << "Column Model: " << modelCol.columnCount() << " countries, " 
                   << modelCol.years().size() << " years\n";
         
         if (!model.years().empty()) {

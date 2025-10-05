@@ -54,14 +54,6 @@ namespace Utils {
     // === Statistical Utilities ===
     
     /**
-     * @brief Calculate median of a vector of values
-     * @param v Vector of values (copied for sorting)
-     * @return Median value, or 0.0 if vector is empty
-     * 
-     * Sorts the input vector and returns the middle value.
-     * For even-sized vectors, returns the average of the two middle values.
-     */
-    /**
      * @brief Calculate mean (average) of a vector of values
      * @param v Vector of values (const reference)
      * @return Arithmetic mean, or 0.0 if vector is empty
@@ -69,16 +61,4 @@ namespace Utils {
      * Calculates the arithmetic mean of all values in the vector.
      */
     double mean(const std::vector<double>& v);
-    
-    double median(std::vector<double> v);
-    
-    /**
-     * @brief Calculate standard deviation of a vector of values
-     * @param v Vector of values (const reference)
-     * @return Sample standard deviation, or 0.0 if fewer than 2 values
-     * 
-     * Uses the sample standard deviation formula (N-1 denominator)
-     * for unbiased estimation from sample data.
-     */
-    double stddev(const std::vector<double>& v);
 }

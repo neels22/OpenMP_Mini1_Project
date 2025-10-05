@@ -50,33 +50,8 @@ namespace BenchmarkRunner {
         const std::vector<std::reference_wrapper<IPopulationService>>& services,
         const std::string& operationName,
         std::function<T(const IPopulationService&, int)> operation,
-        int /* year */,  // Marked as intentionally unused
-        const BenchmarkConfig& config = {}) {
-        
-        for (const auto& serviceRef : services) {
-            const IPopulationService& service = serviceRef.get();
-            const std::string& implName = service.getImplementationName();
-            
-            T serialResult{}, parallelResult{};
-            
-            BenchmarkUtils::runAndReport(
-                operationName + " (" + implName + ")",
-                [&]{ serialResult = operation(service, 1); },
-                [&]{ parallelResult = operation(service, config.parallelThreads); },
-                config.repetitions
-            );
-            
-            if (config.showValues) {
-                std::cout << "  -> values: serial=" << serialResult 
-                          << " parallel=" << parallelResult << "\n";
-            }
-            
-            if (config.validateResults && serialResult != parallelResult) {
-                std::cout << "  ⚠️  WARNING: Serial/parallel result mismatch!\n";
-            }
-        }
-        std::cout << "\n";
-    }
+        int year,
+        const BenchmarkConfig& config = {});
 
     /**
      * @brief Run top-N benchmark for ranking operations
@@ -116,32 +91,7 @@ namespace BenchmarkRunner {
         const std::string& operationName,
         std::function<T(const IPopulationService&, const std::string&, int)> operation,
         const std::string& country,
-        const BenchmarkConfig& config = {}) {
-        
-        for (const auto& serviceRef : services) {
-            const IPopulationService& service = serviceRef.get();
-            const std::string& implName = service.getImplementationName();
-            
-            T serialResult{}, parallelResult{};
-            
-            BenchmarkUtils::runAndReport(
-                operationName + " (" + implName + ")",
-                [&]{ serialResult = operation(service, country, 1); },
-                [&]{ parallelResult = operation(service, country, config.parallelThreads); },
-                config.repetitions
-            );
-            
-            if (config.showValues) {
-                if constexpr (std::is_same_v<T, std::vector<long long>>) {
-                    std::cout << "  -> len=" << serialResult.size() << "\n";
-                } else {
-                    std::cout << "  -> values: serial=" << serialResult 
-                              << " parallel=" << parallelResult << "\n";
-                }
-            }
-        }
-        std::cout << "\n";
-    }
+        const BenchmarkConfig& config = {});
 
     /**
      * @brief Run year range benchmark for country time series

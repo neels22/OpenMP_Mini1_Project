@@ -17,7 +17,7 @@ const std::vector<long long>& PopulationModelColumn::years() const noexcept { re
 const std::unordered_map<std::string, int>& PopulationModelColumn::countryNameToIndex() const noexcept { return _countryNameToIndex; }
 const std::unordered_map<long long, int>& PopulationModelColumn::yearToIndex() const noexcept { return _yearToIndex; }
 
-std::size_t PopulationModelColumn::rowCount() const noexcept { return _countryNames.size(); }
+std::size_t PopulationModelColumn::columnCount() const noexcept { return _countryNames.size(); }
 std::size_t PopulationModelColumn::yearCount() const noexcept { return _years.size(); }
 
 bool PopulationModelColumn::setYears(std::vector<long long> years) {
@@ -54,7 +54,7 @@ void PopulationModelColumn::insertNewEntry(std::string country, std::string coun
 }
 
 long long PopulationModelColumn::getPopulationForCountryYear(std::size_t countryIndex, std::size_t yearIndex) const {
-    if (yearIndex >= _columns.size() || countryIndex >= rowCount()) return 0;
+    if (yearIndex >= _columns.size() || countryIndex >= columnCount()) return 0;
     return _columns[yearIndex][countryIndex];
 }
 

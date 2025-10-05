@@ -4,6 +4,75 @@
 #include <algorithm>
 
 namespace BenchmarkRunner {
+    template<typename T>
+    void runAggregationBenchmark(
+        const std::vector<std::reference_wrapper<IPopulationService>>& services,
+        const std::string& operationName,
+        std::function<T(const IPopulationService&, int)> operation,
+        int /* year */,
+        const BenchmarkConfig& config) {
+        for (const auto& serviceRef : services) {
+            const IPopulationService& service = serviceRef.get();
+            const std::string& implName = service.getImplementationName();
+            T serialResult{}, parallelResult{};
+            BenchmarkUtils::runAndReport(
+                operationName + " (" + implName + ")",
+                [&]{ serialResult = operation(service, 1); },
+                [&]{ parallelResult = operation(service, config.parallelThreads); },
+                config.repetitions
+            );
+            if (config.showValues) {
+                std::cout << "  -> values: serial=" << serialResult 
+                          << " parallel=" << parallelResult << "\n";
+            }
+            if (config.validateResults && serialResult != parallelResult) {
+                std::cout << "  ⚠️  WARNING: Serial/parallel result mismatch!\n";
+            }
+        }
+        std::cout << "\n";
+    }
+
+    template<typename T>
+    void runCountryBenchmark(
+        const std::vector<std::reference_wrapper<IPopulationService>>& services,
+        const std::string& operationName,
+        std::function<T(const IPopulationService&, const std::string&, int)> operation,
+        const std::string& country,
+        const BenchmarkConfig& config) {
+        for (const auto& serviceRef : services) {
+            const IPopulationService& service = serviceRef.get();
+            const std::string& implName = service.getImplementationName();
+            T serialResult{}, parallelResult{};
+            BenchmarkUtils::runAndReport(
+                operationName + " (" + implName + ")",
+                [&]{ serialResult = operation(service, country, 1); },
+                [&]{ parallelResult = operation(service, country, config.parallelThreads); },
+                config.repetitions
+            );
+            if (config.showValues) {
+                if constexpr (std::is_same_v<T, std::vector<long long>>) {
+                    std::cout << "  -> len=" << serialResult.size() << "\n";
+                } else {
+                    std::cout << "  -> values: serial=" << serialResult 
+                              << " parallel=" << parallelResult << "\n";
+                }
+            }
+        }
+        std::cout << "\n";
+    }
+
+    // Explicit instantiations for common types
+    template void runAggregationBenchmark<long long>(
+        const std::vector<std::reference_wrapper<IPopulationService>>&, const std::string&,
+        std::function<long long(const IPopulationService&, int)>, int, const BenchmarkConfig&);
+    template void runCountryBenchmark<long long>(
+        const std::vector<std::reference_wrapper<IPopulationService>>&, const std::string&,
+        std::function<long long(const IPopulationService&, const std::string&, int)>,
+        const std::string&, const BenchmarkConfig&);
+    template void runCountryBenchmark<std::vector<long long>>(
+        const std::vector<std::reference_wrapper<IPopulationService>>&, const std::string&,
+        std::function<std::vector<long long>(const IPopulationService&, const std::string&, int)>,
+        const std::string&, const BenchmarkConfig&);
 
     void runTopNBenchmark(
         const std::vector<std::reference_wrapper<IPopulationService>>& services,

@@ -42,30 +42,7 @@ namespace {
         assert(Utils::parseLongOrZero("") == 0);
         assert(Utils::parseLongOrZero("123abc") == 123);
         
-        // Test median calculation
-        std::vector<double> empty_vec;
-        assert(Utils::median(empty_vec) == 0.0);
-        
-        std::vector<double> single = {5.0};
-        assert(Utils::median(single) == 5.0);
-        
-        std::vector<double> odd = {3.0, 1.0, 4.0};
-        assert(Utils::median(odd) == 3.0);
-        
-        std::vector<double> even = {1.0, 2.0, 3.0, 4.0};
-        assert(Utils::median(even) == 2.5);
-        
-        // Test stddev calculation
-        std::vector<double> small = {1.0};
-        assert(Utils::stddev(small) == 0.0);
-        
-        std::vector<double> same = {5.0, 5.0, 5.0};
-        assert(Utils::stddev(same) == 0.0);
-        
-        std::vector<double> simple = {1.0, 2.0, 3.0};
-        double stddev_result = Utils::stddev(simple);
-        assert(std::abs(stddev_result - 1.0) < 0.001); // Should be 1.0
-        (void)stddev_result; // Silence unused variable warning
+    // Median and stddev tests removed; only mean and parseLongOrZero are tested
         
         std::cout << "✓ Utility functions tests passed\n";
     }

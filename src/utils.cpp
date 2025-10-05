@@ -47,21 +47,6 @@ namespace Utils {
         return res;
     }
 
-    double median(std::vector<double> v) {
-        if (v.empty()) return 0.0;
-        
-        // Sort vector to find middle value(s)
-        std::sort(v.begin(), v.end());
-        size_t m = v.size() / 2;
-        
-        if (v.size() % 2 == 1) {
-            // Odd number of elements: return middle element
-            return v[m];
-        }
-        // Even number of elements: return average of two middle elements
-        return 0.5 * (v[m-1] + v[m]);
-    }
-
     double mean(const std::vector<double>& v) {
         if (v.empty()) return 0.0;
         double sum = 0.0;
@@ -69,21 +54,4 @@ namespace Utils {
         return sum / v.size();
     }
 
-    double stddev(const std::vector<double>& v) {
-        if (v.size() < 2) return 0.0;
-        
-        // Calculate sample mean
-        double mean = 0.0;
-        for (double x : v) {
-            mean += x;
-        }
-        mean /= static_cast<double>(v.size());
-        
-        // Calculate sample variance (using N-1 denominator for unbiased estimate)
-        double s = 0.0;
-        for (double x : v) {
-            s += (x - mean) * (x - mean);
-        }
-        return std::sqrt(s / static_cast<double>(v.size() - 1));
-    }
 }

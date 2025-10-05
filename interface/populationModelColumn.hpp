@@ -97,7 +97,7 @@ public:
     // === Size Information Methods ===
     
     /// Get total number of countries in the model
-    std::size_t rowCount() const noexcept;
+    std::size_t columnCount() const noexcept;
     
     /// Get total number of years in the model
     std::size_t yearCount() const noexcept;
