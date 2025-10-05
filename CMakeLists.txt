@@ -25,6 +25,7 @@ set(CORE_SOURCES
   src/utils.cpp
   src/benchmark_utils.cpp
   src/benchmark_runner.cpp
+  src/fireRowModel.cpp
 )
 
 add_library(openmp_core STATIC ${CORE_SOURCES})
@@ -48,6 +49,12 @@ add_executable(${PROJECT_NAME}_tests tests/basic_tests.cpp)
 target_compile_features(${PROJECT_NAME}_tests PRIVATE cxx_std_17)
 target_compile_options(${PROJECT_NAME}_tests PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(${PROJECT_NAME}_tests PRIVATE openmp_core)
+
+# Fire data model test
+add_executable(${PROJECT_NAME}_fire_test src/fire_test.cpp)
+target_compile_features(${PROJECT_NAME}_fire_test PRIVATE cxx_std_17)
+target_compile_options(${PROJECT_NAME}_fire_test PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(${PROJECT_NAME}_fire_test PRIVATE openmp_core)
 
 # Require OpenMP (fail configuration if not available)
 find_package(OpenMP)
