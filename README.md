@@ -1,5 +1,7 @@
 ## OpenMP Fire Data Processing & Population Analytics
 
+For the full architecture & research analysis see: **[EXTENDED_README.md](EXTENDED_README.md)**.
+
 High-performance C++17 + OpenMP framework comparing two data layouts for environmental monitoring and demographic analytics:
 - Fire data: row-oriented (site grouped) vs column-oriented (field grouped)
 - Population data: row model vs column model for aggregation and lookup patterns
@@ -127,3 +129,23 @@ auto pm = fireCol.getIndicesByParameter("PM2.5");
 MIT License
 
 Performance validated: 640.5 files/sec (row), 2.58x speedup, consistent analytical correctness across models.
+
+---
+### 12. Benchmark Artifacts
+Auto-generated CSV, Markdown tables, and charts can be produced:
+```bash
+python3 scripts/generate_bench_assets.py
+```
+Outputs (in `bench_artifacts/`):
+```
+fire_results.csv
+population_results.csv
+fire_results.md
+population_results.md
+fire_speedup.(png|svg)
+fire_efficiency.(png|svg)
+```
+Embed example (speedup chart):
+```
+![Fire Speedup](bench_artifacts/fire_speedup.png)
+```
