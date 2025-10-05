@@ -138,15 +138,10 @@ Dataset: **516 CSV files**, **1,167,525 measurements**, **1,398 sites**.
 | Column | 4 | 0.874 | 2.40× | 25.0% | 590.6 |
 | Column | 8 | 0.850 | 2.46× | 12.5% | 606.8 |
 
-### 8.1 Speedup Visualization (Mermaid)
-```mermaid
-bar
-    title Fire Data Speedup by Threads
-    x-axis Threads
-    y-axis Speedup
-    series Row [1.00,1.57,2.07,2.51,2.58]
-    series Column [1.00,1.56,2.02,2.40,2.46]
-```
+### 8.1 Speedup Visualization
+> **Note:** GitHub does not support Mermaid bar charts. See the PNG chart below for fire data speedup by threads.
+
+![Fire Speedup](bench_artifacts/fire_speedup.png)
 
 ### 8.2 Efficiency (ASCII Bars)
 ```
