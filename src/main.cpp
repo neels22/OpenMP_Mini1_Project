@@ -15,6 +15,7 @@
 #include "../interface/constants.hpp"
 #include "../interface/fireRowModel.hpp"
 #include "../interface/fireColumnModel.hpp"
+#include "../interface/fire_service_direct.hpp"
 
 /**
  * @file main.cpp
@@ -72,9 +73,28 @@ namespace {
         // Use middle year for better data coverage
         return static_cast<int>(years[years.size() / 2]);
     }
+    /**
+     * Get the directory where the executable is located
+     */
+    std::string getExecutableDir() {
+        std::filesystem::path exe_path = std::filesystem::current_path();
+        
+        // If we're in a build directory, go up one level to project root
+        if (exe_path.filename() == "build") {
+            exe_path = exe_path.parent_path();
+        }
+        
+        return exe_path.string();
+    }
+
      std::string getCSVPath() {
         const char* envCsv = std::getenv("CSV_PATH");
-        return envCsv ? std::string(envCsv) : std::string("data/PopulationData/population.csv");
+        if (envCsv) {
+            return std::string(envCsv);
+        }
+        
+        std::string projectRoot = getExecutableDir();
+        return std::filesystem::path(projectRoot) / "data" / "PopulationData" / "population.csv";
     }
 
     /**
@@ -82,10 +102,13 @@ namespace {
      */
     std::string getFireDataPath() {
         const char* envFireData = std::getenv("FIRE_DATA_PATH");
-        return envFireData ? std::string(envFireData) : std::string("data/FireData");
-    }
-
-    /**
+        if (envFireData) {
+            return std::string(envFireData);
+        }
+        
+        std::string projectRoot = getExecutableDir();
+        return std::filesystem::path(projectRoot) / "data" / "fireData";
+    }    /**
      * Benchmark fire data reading performance (serial vs parallel)
      */
     void benchmarkFireDataReading(const std::string& fireDataPath, int maxThreads, int repetitions) {
@@ -292,22 +315,28 @@ int main(int argc, char* argv[]) {
         
         // Check for fire benchmarking flag
         bool runFireBenchmark = false;
+        bool runFireAnalytics = false;
         for (int i = 1; i < argc; ++i) {
             if (std::string(argv[i]) == "--fire" || std::string(argv[i]) == "-f") {
                 runFireBenchmark = true;
                 break;
             }
+            if (std::string(argv[i]) == "--fire-analytics" || std::string(argv[i]) == "-fa") {
+                runFireAnalytics = true;
+                break;
+            }
         }
         
         if (args.showHelp) {
-            std::cout << "Usage: " << argv[0] << " [--help] [--threads N] [--repetitions N] [--fire]\n";
+            std::cout << "Usage: " << argv[0] << " [--help] [--threads N] [--repetitions N] [--fire] [--fire-analytics]\n";
             std::cout << "\nDemonstrates interface-based design eliminating code duplication\n";
             std::cout << "Uses synthetic data to showcase generic benchmark framework\n\n";
             std::cout << "Options:\n";
             std::cout << "  --help              Show this help message\n";
             std::cout << "  --threads N         Number of parallel threads (default: 4)\n";
             std::cout << "  --repetitions N     Number of benchmark repetitions (default: 5)\n";
-            std::cout << "  --fire, -f          Run fire data reading benchmark\n\n";
+            std::cout << "  --fire, -f          Run fire data reading benchmark\n";
+            std::cout << "  --fire-analytics, -fa Run fire analytics benchmark suite\n\n";
             return 0;
         }
         
@@ -319,6 +348,116 @@ int main(int argc, char* argv[]) {
         if (runFireBenchmark) {
             std::string fireDataPath = getFireDataPath();
             benchmarkFireDataReading(fireDataPath, args.parallelThreads, args.repetitions);
+            std::cout << "\n" << std::string(60, '=') << "\n";
+        }
+
+        // Run fire analytics benchmark if requested
+        if (runFireAnalytics) {
+            std::cout << "\n=== Fire Analytics Performance Benchmark ===\n";
+            std::string fireDataPath = getFireDataPath();
+            
+            try {
+                // Load fire data models
+                std::cout << "Loading fire data for analytics benchmarking...\n";
+                FireRowModel fireRowModel;
+                FireColumnModel fireColumnModel;
+                
+                // Load with optimal thread count for data loading
+                int loadThreads = std::min(4, args.parallelThreads);
+                std::cout << "Loading row model with " << loadThreads << " threads...\n";
+                fireRowModel.readFromDirectoryParallel(fireDataPath, loadThreads);
+                
+                std::cout << "Loading column model with " << loadThreads << " threads...\n";
+                fireColumnModel.readFromDirectoryParallel(fireDataPath, loadThreads);
+                
+                // Create direct services
+                FireRowService fireRowService(&fireRowModel);
+                FireColumnService fireColumnService(&fireColumnModel);
+                
+                std::cout << "\n=== Fire Analytics Benchmark Results ===\n";
+                std::cout << "Configuration: " << args.parallelThreads << " threads, " << args.repetitions << " repetitions\n";
+                std::cout << "Row Model: " << fireRowService.totalMeasurementCount() << " measurements, " << fireRowService.uniqueSiteCount() << " sites\n";
+                std::cout << "Column Model: " << fireColumnService.totalMeasurementCount() << " measurements, " << fireColumnService.uniqueSiteCount() << " sites\n\n";
+                
+                // Simple benchmarking for maxAQI
+                std::cout << "=== AQI Operations ===\n";
+                
+                // Test maxAQI
+                auto startTime = std::chrono::high_resolution_clock::now();
+                int rowMaxSerial = fireRowService.maxAQI(1);
+                auto endTime = std::chrono::high_resolution_clock::now();
+                auto rowMaxSerialTime = std::chrono::duration<double, std::micro>(endTime - startTime).count();
+                
+                startTime = std::chrono::high_resolution_clock::now();
+                int rowMaxParallel = fireRowService.maxAQI(args.parallelThreads);
+                endTime = std::chrono::high_resolution_clock::now();
+                auto rowMaxParallelTime = std::chrono::duration<double, std::micro>(endTime - startTime).count();
+                
+                startTime = std::chrono::high_resolution_clock::now();
+                int colMaxSerial = fireColumnService.maxAQI(1);
+                endTime = std::chrono::high_resolution_clock::now();
+                auto colMaxSerialTime = std::chrono::duration<double, std::micro>(endTime - startTime).count();
+                
+                startTime = std::chrono::high_resolution_clock::now();
+                int colMaxParallel = fireColumnService.maxAQI(args.parallelThreads);
+                endTime = std::chrono::high_resolution_clock::now();
+                auto colMaxParallelTime = std::chrono::duration<double, std::micro>(endTime - startTime).count();
+                
+                std::cout << "Max AQI Results:\n";
+                std::cout << "  Row-oriented:    Serial=" << rowMaxSerial << " (" << std::fixed << std::setprecision(2) << rowMaxSerialTime << "μs), Parallel=" << rowMaxParallel << " (" << rowMaxParallelTime << "μs)\n";
+                std::cout << "  Column-oriented: Serial=" << colMaxSerial << " (" << colMaxSerialTime << "μs), Parallel=" << colMaxParallel << " (" << colMaxParallelTime << "μs)\n\n";
+                
+                // Test minAQI
+                int rowMinSerial = fireRowService.minAQI(1);
+                int rowMinParallel = fireRowService.minAQI(args.parallelThreads);
+                int colMinSerial = fireColumnService.minAQI(1);
+                int colMinParallel = fireColumnService.minAQI(args.parallelThreads);
+                
+                std::cout << "Min AQI Results:\n";
+                std::cout << "  Row-oriented:    Serial=" << rowMinSerial << ", Parallel=" << rowMinParallel << "\n";
+                std::cout << "  Column-oriented: Serial=" << colMinSerial << ", Parallel=" << colMinParallel << "\n\n";
+                
+                // Test averageAQI
+                double rowAvgSerial = fireRowService.averageAQI(1);
+                double rowAvgParallel = fireRowService.averageAQI(args.parallelThreads);
+                double colAvgSerial = fireColumnService.averageAQI(1);
+                double colAvgParallel = fireColumnService.averageAQI(args.parallelThreads);
+                
+                std::cout << "Average AQI Results:\n";
+                std::cout << "  Row-oriented:    Serial=" << std::fixed << std::setprecision(2) << rowAvgSerial << ", Parallel=" << rowAvgParallel << "\n";
+                std::cout << "  Column-oriented: Serial=" << colAvgSerial << ", Parallel=" << colAvgParallel << "\n\n";
+                
+                // Test topN sites
+                auto rowTop5Serial = fireRowService.topNSitesByAverageConcentration(5, 1);
+                auto rowTop5Parallel = fireRowService.topNSitesByAverageConcentration(5, args.parallelThreads);
+                auto colTop5Serial = fireColumnService.topNSitesByAverageConcentration(5, 1);
+                auto colTop5Parallel = fireColumnService.topNSitesByAverageConcentration(5, args.parallelThreads);
+                
+                std::cout << "Top-5 Sites by Average Concentration:\n";
+                std::cout << "  Row-oriented (Serial): ";
+                for (size_t i = 0; i < std::min(size_t(3), rowTop5Serial.size()); ++i) {
+                    if (i > 0) std::cout << ", ";
+                    std::cout << rowTop5Serial[i].first << "(" << std::fixed << std::setprecision(1) << rowTop5Serial[i].second << ")";
+                }
+                std::cout << "\n  Column-oriented (Serial): ";
+                for (size_t i = 0; i < std::min(size_t(3), colTop5Serial.size()); ++i) {
+                    if (i > 0) std::cout << ", ";
+                    std::cout << colTop5Serial[i].first << "(" << std::fixed << std::setprecision(1) << colTop5Serial[i].second << ")";
+                }
+                std::cout << "\n\n";
+                
+                // Validation
+                bool resultsMatch = (rowMaxSerial == rowMaxParallel && rowMaxSerial == colMaxSerial && 
+                                   rowMinSerial == rowMinParallel && rowMinSerial == colMinSerial &&
+                                   std::abs(rowAvgSerial - rowAvgParallel) < 0.1);
+                
+                std::cout << "=== Validation ===\n";
+                std::cout << "Serial vs Parallel consistency: " << (resultsMatch ? "✓ PASS" : "⚠ WARNING") << "\n";
+                
+            } catch (const std::exception& e) {
+                std::cerr << "Error in fire analytics benchmark: " << e.what() << "\n";
+            }
+            
             std::cout << "\n" << std::string(60, '=') << "\n";
         }
 

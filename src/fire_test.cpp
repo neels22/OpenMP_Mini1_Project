@@ -9,7 +9,7 @@ int main() {
         std::cout << "=== Fire Data Multi-threaded CSV Reading Test ===" << std::endl;
         
         // Test with fire data directory
-        std::string fire_data_path = "data/FireData";
+        std::string fire_data_path = "data/fireData";
         
         auto start = std::chrono::high_resolution_clock::now();
         
@@ -48,8 +48,8 @@ int main() {
         
         // Use just one date directory for quick test
         std::vector<std::string> test_files;
-        test_files.push_back("data/FireData/20200810/20200810-01.csv");
-        test_files.push_back("data/FireData/20200810/20200810-03.csv");
+        test_files.push_back("data/fireData/20200810/20200810-01.csv");
+        test_files.push_back("data/fireData/20200810/20200810-03.csv");
         
         single_model.readFromMultipleCSVParallel(test_files, 1); // Should use single thread
         
