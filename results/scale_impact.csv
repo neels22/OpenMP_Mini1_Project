@@ -1,0 +1,10 @@
+Metric,Small_Dataset_26K,Large_Dataset_2_3M,Scale_Factor,Impact
+Records,26647,2334535,87.6,Data volume increased 88x
+Files,12,517,43.1,File count increased 43x
+Stations,1310,1417,1.1,Station count similar
+TimeSlots,12,516,43.0,Time slots increased 43x
+Column_Temporal_Advantage,2.84,345.18,121.5,Column advantage amplified 122x
+Row_Station_Advantage,771.38,96646.55,125.3,Row advantage amplified 125x
+Column_TopN_Advantage,1.96,50.59,25.8,Column TopN improved 26x
+OpenMP_Row_Temporal,0.52,1.44,2.8,Better parallel scaling at scale
+OpenMP_Column_TopN,1.58,1.79,1.1,Consistent parallel benefit

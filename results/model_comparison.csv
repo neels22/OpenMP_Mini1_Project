@@ -1,0 +1,7 @@
+Dataset_Size,Records,Files,Stations,TimeSlots,Query_Type,Row_Time_us,Column_Time_us,Winner,Speedup_Factor,Advantage
+Small,26647,12,1310,12,Temporal_Aggregation,34.25,12.08,Column,2.84,Column faster - direct time access
+Small,26647,12,1310,12,Station_TimeSeries,0.08,61.71,Row,771.38,Row faster - direct station access
+Small,26647,12,1310,12,TopN_Stations,44.17,22.58,Column,1.96,Column faster - time access advantage
+Large,2334535,517,1417,516,Temporal_Aggregation,7493.75,21.71,Column,345.18,Column MUCH faster at scale
+Large,2334535,517,1417,516,Station_TimeSeries,0.29,28027.50,Row,96646.55,Row ASTRONOMICAL advantage
+Large,2334535,517,1417,516,TopN_Stations,7295.75,144.21,Column,50.59,Column dominates

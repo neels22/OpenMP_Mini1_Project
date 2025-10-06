@@ -1,0 +1,18 @@
+Category,Metric,Value,Unit,Description
+Dataset,Total_Records,2334535,records,Full FireData dataset
+Dataset,Total_Files,517,files,CSV files processed
+Dataset,Unique_Stations,1417,stations,Monitoring stations
+Dataset,Time_Slots,516,hours,Hourly measurements
+Dataset,Date_Range,45,days,Aug 10 - Sep 24 2020
+Dataset,Pollutant_Types,"PM2.5 PM10 OZONE SO2 CO NO2",types,Pollutant types present
+Performance,Max_Column_Advantage,345.18,times,Temporal aggregation serial
+Performance,Max_Row_Advantage,96646.55,times,Station time series
+Performance,Best_OpenMP_Speedup,1.79,times,Column TopN with 8 threads
+Performance,Max_Parallel_Efficiency,22.4,percent,Column TopN efficiency
+FileIO,Sequential_Load_Time,11144.80,ms,517 files sequential
+FileIO,Parallel_Load_Time,22387.30,ms,517 files with 8 threads
+FileIO,Sequential_Throughput,209508.50,records/sec,Sequential I/O rate
+FileIO,Parallel_Throughput,104298.07,records/sec,Parallel I/O rate
+Hardware,CPU_Cores,8,cores,OpenMP threads used
+Hardware,Architecture,ARM64,type,Apple Silicon
+Hardware,Storage,SSD,type,Fast solid state drive

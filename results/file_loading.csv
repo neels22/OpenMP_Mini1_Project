@@ -1,0 +1,5 @@
+Dataset_Size,Files,Total_Records,Method,Threads,Time_ms,Throughput_records_per_sec,Notes
+Small,12,26647,Sequential,1,129.58,205634.68,One file at a time
+Small,12,26647,Parallel,8,368.70,72280.36,OpenMP parallel loading
+Large,517,2334535,Sequential,1,11144.80,209508.50,One file at a time
+Large,517,2334535,Parallel,8,22387.30,104298.07,OpenMP parallel loading

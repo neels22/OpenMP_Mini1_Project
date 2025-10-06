@@ -49,12 +49,52 @@ target_compile_features(${PROJECT_NAME}_tests PRIVATE cxx_std_17)
 target_compile_options(${PROJECT_NAME}_tests PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(${PROJECT_NAME}_tests PRIVATE openmp_core)
 
+# ═══════════════════════════════════════════════════════════════
+# Air Quality Project - Parallel File Loading
+# ═══════════════════════════════════════════════════════════════
+
+# Air quality core sources
+set(AIRQUALITY_SOURCES
+  src/airquality_types.cpp
+  src/parallel_csv_loader.cpp
+)
+
+# Parallel loading test executable
+add_executable(AirQuality_ParallelTest
+  src/test_parallel_loading.cpp
+  ${AIRQUALITY_SOURCES}
+)
+target_compile_features(AirQuality_ParallelTest PRIVATE cxx_std_17)
+target_compile_options(AirQuality_ParallelTest PRIVATE -Wall -Wextra -Wpedantic)
+# Note: Will link OpenMP below
+
+# Full air quality benchmark (complete implementation)
+add_executable(AirQuality_Benchmark
+  src/main_airquality_full.cpp
+  src/airquality_types.cpp
+  src/parallel_csv_loader.cpp
+  src/airquality_model_row.cpp
+  src/airquality_model_column.cpp
+  src/airquality_service_row.cpp
+  src/airquality_service_column.cpp
+)
+target_compile_features(AirQuality_Benchmark PRIVATE cxx_std_17)
+target_compile_options(AirQuality_Benchmark PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(AirQuality_Benchmark PRIVATE /opt/homebrew/Cellar/llvm/21.1.0/lib/c++/libc++.1.0.dylib)
+# Note: Will link OpenMP below
+
 # Require OpenMP (fail configuration if not available)
 find_package(OpenMP)
 if(OpenMP_CXX_FOUND)
   message(STATUS "OpenMP found: enabling via FindOpenMP")
   target_link_libraries(openmp_core PRIVATE OpenMP::OpenMP_CXX)
   target_compile_definitions(openmp_core PRIVATE OPENMP_ENABLED=1)
+  # Link OpenMP to air quality test
+  target_link_libraries(AirQuality_ParallelTest PRIVATE OpenMP::OpenMP_CXX)
+  target_compile_definitions(AirQuality_ParallelTest PRIVATE OPENMP_ENABLED=1)
+  # Link OpenMP to full benchmark
+  target_link_libraries(AirQuality_Benchmark PRIVATE OpenMP::OpenMP_CXX)
+  target_compile_definitions(AirQuality_Benchmark PRIVATE OPENMP_ENABLED=1)
 else()
   # Try to locate libomp installed by Homebrew on macOS (common path)
   if(APPLE)
@@ -68,6 +108,16 @@ else()
   target_compile_options(openmp_core PRIVATE -Xpreprocessor -fopenmp)
   target_link_libraries(openmp_core PRIVATE ${HOMEBREW_LIBOMP_LIB})
   target_compile_definitions(openmp_core PRIVATE OPENMP_ENABLED=1)
+  # Link OpenMP to air quality test
+  target_include_directories(AirQuality_ParallelTest PRIVATE ${HOMEBREW_LIBOMP_INCLUDE_DIR})
+  target_compile_options(AirQuality_ParallelTest PRIVATE -Xpreprocessor -fopenmp)
+  target_link_libraries(AirQuality_ParallelTest PRIVATE ${HOMEBREW_LIBOMP_LIB})
+  target_compile_definitions(AirQuality_ParallelTest PRIVATE OPENMP_ENABLED=1)
+  # Link OpenMP to full benchmark
+  target_include_directories(AirQuality_Benchmark PRIVATE ${HOMEBREW_LIBOMP_INCLUDE_DIR})
+  target_compile_options(AirQuality_Benchmark PRIVATE -Xpreprocessor -fopenmp)
+  target_link_libraries(AirQuality_Benchmark PRIVATE ${HOMEBREW_LIBOMP_LIB})
+  target_compile_definitions(AirQuality_Benchmark PRIVATE OPENMP_ENABLED=1)
     else()
       message(FATAL_ERROR "OpenMP not found. Install libomp (brew install libomp) or ensure your compiler supports OpenMP.")
     endif()

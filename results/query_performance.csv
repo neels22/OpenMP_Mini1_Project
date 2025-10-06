@@ -1,0 +1,13 @@
+Query_Type,Model,Dataset_Size,Records,Serial_Time_us,Parallel_Time_us,Threads,Speedup,Notes
+Temporal_Aggregation,Row,Small,26647,34.25,65.46,8,0.52,Must scan all stations
+Temporal_Aggregation,Column,Small,26647,12.08,53.71,8,0.22,Direct time slot access
+Temporal_Aggregation,Row,Large,2334535,7493.75,5200.33,8,1.44,Must scan all 1417 stations
+Temporal_Aggregation,Column,Large,2334535,21.71,72.83,8,0.30,Direct time slot access
+Station_TimeSeries,Row,Small,26647,0.08,0.08,1,1.00,Direct station access
+Station_TimeSeries,Column,Small,26647,61.71,61.71,1,1.00,Scan all time slots
+Station_TimeSeries,Row,Large,2334535,0.29,0.29,1,1.00,Direct station access
+Station_TimeSeries,Column,Large,2334535,28027.50,28027.50,1,1.00,Scan all 516 time slots
+TopN_Stations,Row,Small,26647,44.17,32.04,8,1.38,Scan and sort
+TopN_Stations,Column,Small,26647,22.58,14.25,8,1.58,Direct time access and sort
+TopN_Stations,Row,Large,2334535,7295.75,7492.96,8,0.97,Parallel overhead
+TopN_Stations,Column,Large,2334535,144.21,80.50,8,1.79,Good parallel scaling
