@@ -4,13 +4,8 @@ project(OpenMP_Mini1_Project LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Prefer clang++ if available but allow overriding via CLI
-if(NOT CMAKE_CXX_COMPILER)
-  find_program(CLANGPP clang++)
-  if(CLANGPP)
-    set(CMAKE_CXX_COMPILER ${CLANGPP} CACHE STRING "C++ compiler" FORCE)
-  endif()
-endif()
+# Use system default compiler (Apple Clang on macOS)
+# Removed preference for Homebrew LLVM clang++ due to ABI compatibility issues
 
 # Make interface headers available
 include_directories(${PROJECT_SOURCE_DIR}/interface)
@@ -27,11 +22,14 @@ set(CORE_SOURCES
   src/benchmark_runner.cpp
   src/fireRowModel.cpp
   src/fireColumnModel.cpp
+  src/fire_service_row.cpp
+  src/fire_service_column.cpp
 )
 
 add_library(openmp_core STATIC ${CORE_SOURCES})
 target_compile_features(openmp_core PRIVATE cxx_std_17)
 target_compile_options(openmp_core PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(openmp_core PRIVATE c++)
 
 # Application
 add_executable(${PROJECT_NAME}_app src/main.cpp)
@@ -62,6 +60,12 @@ add_executable(${PROJECT_NAME}_fire_column_test src/fire_column_test.cpp)
 target_compile_features(${PROJECT_NAME}_fire_column_test PRIVATE cxx_std_17)
 target_compile_options(${PROJECT_NAME}_fire_column_test PRIVATE -Wall -Wextra -Wpedantic)
 target_link_libraries(${PROJECT_NAME}_fire_column_test PRIVATE openmp_core)
+
+# Fire analytics benchmark
+add_executable(${PROJECT_NAME}_fire_analytics src/fire_analytics_test.cpp)
+target_compile_features(${PROJECT_NAME}_fire_analytics PRIVATE cxx_std_17)
+target_compile_options(${PROJECT_NAME}_fire_analytics PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(${PROJECT_NAME}_fire_analytics PRIVATE openmp_core)
 
 # Require OpenMP (fail configuration if not available)
 find_package(OpenMP)
