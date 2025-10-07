@@ -126,7 +126,7 @@ namespace {
         colModel.insertNewEntry("CountryB", "CB", "Population", "POP", pop2);
         
         // Verify both models have same structure
-        assert(rowModel.rowCount() == colModel.rowCount());
+        assert(rowModel.rowCount() == colModel.columnCount());
         assert(rowModel.years().size() == colModel.years().size());
         
         // Verify data access equivalence
